@@ -11,20 +11,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.sql.Connection;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.alibaba.yunxiao.afu.common.ResultEntity;
-import com.alibaba.yunxiao.afu.domain.TaskType;
-import com.alibaba.yunxiao.afu.util.AegisConfigClientWrapper;
-import com.lmax.disruptor.LiteTimeoutBlockingWaitStrategy;
-import com.lmax.disruptor.WorkHandler;
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.ExceptionHandler;
+import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.DaemonThreadFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PreDestroy;
@@ -34,6 +33,8 @@ public class DisruptorConfig {
 
     @Autowired
     ExecutorService executorService;
+
+    RowProcessorFactory rowProcessorFactory;
 
     //Disruptor超时时间：15min
     private final static int DEFAULT_TASK_TIME_OUT = 15;
@@ -46,7 +47,7 @@ public class DisruptorConfig {
     //默认1024个位置，对于大多数场景已经足够
     private final static int DISRUPTOR_BUFFER_SIZE = 1024;
 
-//    public final static Map<String, Object> DISRUPTOR_CONFIG = new LinkedHashMap<>();
+    //    public final static Map<String, Object> DISRUPTOR_CONFIG = new LinkedHashMap<>();
 
     //成功执行的任务的数量
     //此数量表示自系统启动以来执行的数量
@@ -61,27 +62,66 @@ public class DisruptorConfig {
      * 必须在执行线程池启动以后，才可以初始化
      * @return
      */
-    @Bean("task-disruptor")
-    public Disruptor<TaskEvent> disruptorInstance() {
-        //初始化执行队列的日志
-        final Log log = LogFactory.getLog("disruptor-task");
+    public Disruptor<RowString> readDisruptor(ReadStrQueueConfig readStrQueueConfig) {
         //disruptor队列
-        Disruptor<TaskEvent> disruptor = new Disruptor<>(TaskEvent::new, DISRUPTOR_BUFFER_SIZE,
-                DaemonThreadFactory.INSTANCE, ProducerType.MULTI,
-                new LiteTimeoutBlockingWaitStrategy(DEFAULT_TASK_TIME_OUT, TimeUnit.MINUTES));
+        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readStrQueueConfig.getQueueSize(),
+                DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new SleepingWaitStrategy());
 
         //disruptor任务处理器，数量与线程池大小一样，这样保证分发任务时，同时执行任务数不会超过
         //线程池大小
-        int taskCount = getTaskCount(log);
-        DISRUPTOR_INFO.setMaxTaskCount(taskCount);
-        WorkHandler<TaskEvent>[] handlerPool = new WorkHandler[taskCount];
+        int taskCount = readStrQueueConfig.getConsumerCount();
+
+        @SuppressWarnings("unchecked")
+        EventHandler<RowString>[] handlerPool = new EventHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
             handlerPool[i] = createWorkHandler();
         }
-        disruptor.handleEventsWithWorkerPool(handlerPool);
+        disruptor.handleEventsWith(handlerPool);
         disruptor.setDefaultExceptionHandler(getExceptionHandler(log));
         disruptor.start();
         return disruptor;
+    }
+
+    public Disruptor<RowRecord> writeDisruptor(WriteDbQuqueConfig config) {
+        //disruptor队列
+        Disruptor<RowRecord> disruptor = new Disruptor<>(RowRecord::new, config.getQueueSize(),
+                DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
+
+        //disruptor任务处理器，数量与线程池大小一样，这样保证分发任务时，同时执行任务数不会超过
+        //线程池大小
+        int taskCount = config.getConsumerCount();
+
+        @SuppressWarnings("unchecked")
+        EventHandler<RowRecord>[] handlerPool = new EventHandler[taskCount];
+        for (int i = 0; i < taskCount; i++) {
+            handlerPool[i] = createWriteHandler();
+        }
+        disruptor.handleEventsWith(handlerPool);
+        disruptor.setDefaultExceptionHandler(getExceptionHandler(log));
+        disruptor.start();
+        return disruptor;
+    }
+
+    private EventHandler<RowRecord> createWriteHandler() {
+        return (event, sequence, endOfBatch) -> {
+            //执行写入
+            try {
+                event.preparedStatement.execute();
+                event.connection.commit();
+            } catch (Exception e) {
+                //首先记录异常信息
+                event.connection.rollback();
+            } 
+            
+            try {
+                event.connection.close();
+            } catch (Exception e) {
+                // TODO: 记录异常信息
+            }
+            
+            //最后清理资源
+            event.clear();
+        };
     }
 
     private ExceptionHandler<TaskEvent> getExceptionHandler(Log log) {
@@ -125,34 +165,45 @@ public class DisruptorConfig {
         };
     }
 
-    private WorkHandler<TaskEvent> createWorkHandler() {
-        return (event) -> {
-            TaskType taskType = event.getTaskType();
-            //执行任务
-            //SQL执行任务有两个入口
-            //AfuExecuteController#executeTask和
-            //AfuExecuteController#executeSql
-            //databank的执行入口是executeTask，
-            //对外调用是executeSql，两种接口的数据格式是不同的
-            //一方面是因为executeSql公布较早，对外的数据格式已经固化
-            //executeTask是databank的统一任务入口，数据格式也是统一的
-            //两个入口的数据不同，因此需要分别处理
-            //在executeSql入口的数据，是没有taskType信息的，因此，使用
-            //taskType是否为null来区分数据来源和执行的方式
-            ResultEntity result;
-            if (taskType == null) {
-                result = executorService.executeSql(event.getSqlDto());
-            } else {
-                result = taskExecutorService.executeTask(event.getTaskType(), event.getRunArg(), event.getParams());
+    private EventHandler<RowString> createWorkHandler(Disruptor<RowRecord> writeDisruptor,ConnectionPoolManager manager) {
+        return (event, sequence, endOfBatch) -> {
+            //获取行数据
+            String row = event.getRow();
+            //解析数据
+            Object[] rowValues = rowDataProcessor.parseRow(row);
+            String[] rowTitles = rowDataProcessor.getRowTitles();
+            String tableName = rowDataProcessor.getTableName();
+
+            StringBuilder builder = new StringBuilder();
+            builder.append("insert into ").append(tableName).append(" (");
+            Object[] params = new Object[rowValues.length];
+            int idx = 0;
+
+            for (int i = 0; i < rowValues.length; i++) {
+                if (rowValues[i] != null) {
+                    builder.append(rowTitles[i]).append(",");
+                    params[idx++] = rowValues[i];
+                }
             }
-            //输出结果
-            event.getExchanger().exchange(result, DEFAULT_EXCHANGER_TIME_OUT, TimeUnit.SECONDS);
-            //记录执行和失败的数量
-            if(result.isSuccess()){
-                SUCCESS_TASK_COUNT.incrementAndGet();
-            }else{
-                FAILED_TASK_COUNT.incrementAndGet();
+            builder.deleteCharAt(builder.length() - 1);
+            builder.append(") values (");
+            for (int i = 0; i < idx; i++) {
+                builder.append("?,");
             }
+            builder.deleteCharAt(builder.length() - 1);
+            builder.append(")");
+            
+            Connection connection = manager.getPooledConnection();
+            var preparedStatement = connection.prepareStatement(builder.toString());
+            for (int i = 0; i < idx; i++) {
+                preparedStatement.setObject(i + 1, params[i]);
+            }
+
+            //发布写入任务
+            writeDisruptor.publishEvent((rec, recSeq) -> {
+                rec.connection = connection;
+                rec.preparedStatement = preparedStatement;
+            });
             //最后清理资源
             event.clear();
         };

@@ -45,12 +45,6 @@ import org.junit.jupiter.api.Test;
  */
 public class FileSystemsTest {
     
-    @Test
-    public void testFileAttributes() {
-        FileSystem fs = FileSystems.getDefault();
-        fs.supportedFileAttributeViews().forEach(System.out::println);
-        java.nio.file.Files.lines(null, null)
-    }
     
     @Test
     public void testSupportsFileAttributes(){

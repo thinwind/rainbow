@@ -15,41 +15,15 @@
  */
 package win.shangyh.datatrans.rainbow;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-02-26  16:12
+ * @since 2024-03-01  18:56
  *
  */
-public class RowRecord {
-
-    Connection connection;
-
-    PreparedStatement preparedStatement;
-
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public void setConnection(Connection connection) {
-        this.connection = connection;
-    }
-
-    public PreparedStatement getPreparedStatement() {
-        return preparedStatement;
-    }
-
-    public void setPreparedStatement(PreparedStatement preparedStatement) {
-        this.preparedStatement = preparedStatement;
-    }
-
-    public void clear() {
-        connection = null;
-        preparedStatement = null;
-    }
+public interface RowProcessorFactory {
+    
+    RowDataProcessor getRowDataProcessor(String tableName);
 }

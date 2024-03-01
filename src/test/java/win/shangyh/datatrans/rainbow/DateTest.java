@@ -15,41 +15,32 @@
  */
 package win.shangyh.datatrans.rainbow;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.util.Date;
+
+import java.time.LocalDateTime;
+
+import org.junit.jupiter.api.Test;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-02-26  16:12
+ * @since 2024-03-01  14:13
  *
  */
-public class RowRecord {
-
-    Connection connection;
-
-    PreparedStatement preparedStatement;
-
-    public Connection getConnection() {
-        return connection;
+public class DateTest {
+    
+    DateUtil dateUtil=new DateUtil(null, null, null);
+    
+    @Test
+    public void testDate(){
+        Date date=new Date();
+        System.out.println(dateUtil.formatDateTime(date));
     }
-
-    public void setConnection(Connection connection) {
-        this.connection = connection;
-    }
-
-    public PreparedStatement getPreparedStatement() {
-        return preparedStatement;
-    }
-
-    public void setPreparedStatement(PreparedStatement preparedStatement) {
-        this.preparedStatement = preparedStatement;
-    }
-
-    public void clear() {
-        connection = null;
-        preparedStatement = null;
+    
+    @Test
+    public void testLocalDateTime(){
+        System.out.println(dateUtil.formatDateTime(LocalDateTime.now()));
     }
 }

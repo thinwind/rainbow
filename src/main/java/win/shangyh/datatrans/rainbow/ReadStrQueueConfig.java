@@ -15,41 +15,33 @@
  */
 package win.shangyh.datatrans.rainbow;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-02-26  16:12
+ * @since 2024-03-01  16:13
  *
  */
-public class RowRecord {
+public class ReadStrQueueConfig {
+    
+    private int queueSize;
+    
+    private int consumerCount;
 
-    Connection connection;
-
-    PreparedStatement preparedStatement;
-
-    public Connection getConnection() {
-        return connection;
+    public int getQueueSize() {
+        return queueSize;
     }
 
-    public void setConnection(Connection connection) {
-        this.connection = connection;
+    public void setQueueSize(int queueSize) {
+        this.queueSize = queueSize;
     }
 
-    public PreparedStatement getPreparedStatement() {
-        return preparedStatement;
+    public int getConsumerCount() {
+        return consumerCount;
     }
 
-    public void setPreparedStatement(PreparedStatement preparedStatement) {
-        this.preparedStatement = preparedStatement;
-    }
-
-    public void clear() {
-        connection = null;
-        preparedStatement = null;
+    public void setConsumerCount(int consumerCount) {
+        this.consumerCount = consumerCount;
     }
 }
