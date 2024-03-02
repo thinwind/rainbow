@@ -15,20 +15,18 @@
  */
 package win.shangyh.datatrans.rainbow;
 
-import java.sql.Connection;
+import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * TODO 说明
+ * 应用配置
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  18:56
+ * @since 2024-03-02  18:00
  *
  */
-public interface RowProcessorFactory {
+@Configuration
+public class RbConfiguration {
     
-    void registerRowDataProcessor(String tableName, Connection connection);
-    
-    RowDataProcessor getRowDataProcessor(String tableName);
     
 }
