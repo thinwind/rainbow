@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.processor;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,17 +35,19 @@ import win.shangyh.datatrans.rainbow.exception.RainbowRuntimeException;
  * @since 2024-03-02  18:28
  *
  */
-public class RowProcessorFactoryImpl implements RowProcessorFactory{
-    
+public class RowProcessorFactoryImpl implements RowProcessorFactory {
+
     private final static Logger logger = LoggerFactory.getLogger(RowProcessorFactoryImpl.class);
-    
+
+    private final ConcurrentHashMap<String, RowDataProcessor> processorBox = new ConcurrentHashMap<>();
+
     @Override
     public RowDataProcessor getRowDataProcessor(String tableName) {
-        return null;
+        return processorBox.get(tableName);
     }
 
     @Override
-    public void registerRowDataProcessor(String tableName, Connection connection) {
+    public void registerRowDataProcessor(String tableName, Connection connection, String fieldSeparator) {
         String sql = "select * from " + tableName + " limit 1";
         ResultSet rs = null;
         try {
@@ -51,10 +55,13 @@ public class RowProcessorFactoryImpl implements RowProcessorFactory{
             ResultSetMetaData metaData = rs.getMetaData();
             int columnCount = metaData.getColumnCount();
             String[] rowTitles = new String[columnCount];
+            int[] columnTypes = new int[columnCount];
             for (int i = 0; i < columnCount; i++) {
                 rowTitles[i] = metaData.getColumnName(i+1);
+                columnTypes[i] = metaData.getColumnType(i+1);
             }
-            
+            RowDataProcessor rowDataProcessor = new DefaultRowDataProceessorImpl(tableName, rowTitles, fieldSeparator, columnTypes);
+            processorBox.put(tableName, rowDataProcessor);
         } catch (SQLException e) {
             logger.error("查询{}表数据错误",tableName, e);
             throw new RainbowRuntimeException(e);

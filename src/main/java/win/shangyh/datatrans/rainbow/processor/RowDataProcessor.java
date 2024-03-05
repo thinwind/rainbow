@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
-
-import java.sql.Connection;
+package win.shangyh.datatrans.rainbow.processor;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  18:56
+ * @since 2024-03-01  17:01
  *
  */
-public interface RowProcessorFactory {
-    
-    void registerRowDataProcessor(String tableName, Connection connection);
-    
-    RowDataProcessor getRowDataProcessor(String tableName);
+public interface RowDataProcessor {
+
+    Object[] parseRow(String row);
+
+    String[] getRowTitles();
+
+    String getTableName();
     
 }

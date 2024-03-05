@@ -19,6 +19,9 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import win.shangyh.datatrans.rainbow.processor.RowDataProcessor;
+import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
+
 public class DisruptorFactory {
 
     private final static Logger queueLogger = LoggerFactory.getLogger("WorkerQueue");

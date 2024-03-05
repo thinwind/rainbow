@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.processor;
 
 import java.util.Objects;
+
+import win.shangyh.datatrans.rainbow.transfer.ColumnTransfer;
+import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
 
 /**
  *
@@ -31,20 +34,34 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     
     private final String[] rowTitles;
     
+    private final int[] columnTypes;
+    
     private final String fieldSeparator;
     
-    public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator) {
+    public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator, int[] columnTypes) {
         Objects.requireNonNull(tableName, "tableName must not be null");
         Objects.requireNonNull(rowTitles, "rowTitles must not be null");
         Objects.requireNonNull(fieldSeparator, "fieldSeparator must not be null");
+        Objects.requireNonNull(columnTypes, "columnTypes must not be null");
         this.tableName = tableName;
         this.rowTitles = rowTitles;
+        this.columnTypes = columnTypes;
         this.fieldSeparator = fieldSeparator;
     }
 
     @Override
     public Object[] parseRow(String row) {
-        
+        String[] fields = row.split(fieldSeparator);
+        Object[] result = new Object[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            result[i] = parseField(fields[i], columnTypes[i]);
+        }
+        return result;
+    }
+
+    private Object parseField(String val, int columnType) {
+        ColumnTransfer columnTransfer = ColumnTransferRegister.getColumnTransfer(columnType);
+        return columnTransfer.transferFromString(val);
     }
 
     @Override
