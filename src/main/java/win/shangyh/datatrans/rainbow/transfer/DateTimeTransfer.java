@@ -15,29 +15,39 @@
  */
 package win.shangyh.datatrans.rainbow.transfer;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDateTime;
+
+import win.shangyh.datatrans.rainbow.DateUtil;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-04  19:11
+ * @since 2024-03-06  21:52
  *
  */
-public final class ColumnTransferRegister {
+public class DateTimeTransfer implements ColumnTransfer<LocalDateTime>{
     
-    private ColumnTransferRegister() {
+    private final DateUtil dateUtil;
+    
+    public DateTimeTransfer(DateUtil dateUtil) {
+        this.dateUtil = dateUtil;
     }
-
-    private final static ConcurrentHashMap<Integer, ColumnTransfer<? extends Object>> COLUMN_TRANSFER_BOX = new ConcurrentHashMap<>();
-
-    @SuppressWarnings("unchecked")
-    public static <T> ColumnTransfer<T> getColumnTransfer(int columnType) {
-        return (ColumnTransfer<T>)COLUMN_TRANSFER_BOX.get(columnType);
+    
+    @Override
+    public LocalDateTime transferFromString(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return dateUtil.parseDateTime(value);
     }
-
-    public static void registerColumnTransfer(int columnType, ColumnTransfer<? extends Object> columnTransfer) {
-        COLUMN_TRANSFER_BOX.put(columnType, columnTransfer);
+    
+    @Override
+    public String transferToString(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return dateUtil.formatDateTime(value);
     }
 }

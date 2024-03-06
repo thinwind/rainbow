@@ -23,10 +23,10 @@ package win.shangyh.datatrans.rainbow.transfer;
  * @since 2024-03-04  19:08
  *
  */
-public interface ColumnTransfer {
+public interface ColumnTransfer<T> {
 
-    Object transferFromString(String value);
+    T transferFromString(String value);
 
-    String transferToString(Object value);
+    String transferToString(T value);
 
 }

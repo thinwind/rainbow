@@ -22,29 +22,32 @@ import java.sql.Types;
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-05  10:17
+ * @since 2024-03-06  21:41
  *
  */
-public class VarcharTransfer implements ColumnTransfer<String>{
+public class IntegerTransfer implements ColumnTransfer<Integer>{
     
     static {
-        VarcharTransfer varcharTransfer = new VarcharTransfer();
-        ColumnTransferRegister.registerColumnTransfer(Types.CHAR, varcharTransfer);
-        ColumnTransferRegister.registerColumnTransfer(Types.VARCHAR, varcharTransfer);
-        ColumnTransferRegister.registerColumnTransfer(Types.LONGVARCHAR, varcharTransfer);
-        ColumnTransferRegister.registerColumnTransfer(Types.NCHAR, varcharTransfer);
-        ColumnTransferRegister.registerColumnTransfer(Types.NVARCHAR, varcharTransfer);
-        ColumnTransferRegister.registerColumnTransfer(Types.LONGNVARCHAR, varcharTransfer);
+        IntegerTransfer integerTransfer = new IntegerTransfer();
+        ColumnTransferRegister.registerColumnTransfer(Types.INTEGER, integerTransfer);
+        ColumnTransferRegister.registerColumnTransfer(Types.SMALLINT, integerTransfer);
+        ColumnTransferRegister.registerColumnTransfer(Types.TINYINT, integerTransfer);
     }
 
     @Override
-    public String transferFromString(String value) {
-        return value;
+    public Integer transferFromString(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return Integer.parseInt(value);
     }
 
     @Override
-    public String transferToString(String value) {
-        return value;
+    public String transferToString(Integer value) {
+        if (value == null) {
+            return null;
+        }
+        return value.toString();
     }
     
 }
