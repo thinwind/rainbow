@@ -13,35 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  16:13
+ * @since 2024-03-01  16:41
  *
  */
-public class ReadStrQueueConfig {
+@Configuration
+@ConfigurationProperties(prefix = "rb.write.queue")
+public class WriteDbQuqueConfig {
     
-    private int queueSize;
+    private int size;
     
-    private int consumerCount;
+    private int consumer;
 
-    public int getQueueSize() {
-        return queueSize;
+    public int getSize() {
+        return size;
     }
 
-    public void setQueueSize(int queueSize) {
-        this.queueSize = queueSize;
+    public void setSize(int queueSize) {
+        this.size = queueSize;
     }
 
-    public int getConsumerCount() {
-        return consumerCount;
+    public int getConsumer() {
+        return consumer;
     }
 
-    public void setConsumerCount(int consumerCount) {
-        this.consumerCount = consumerCount;
+    public void setConsumer(int consumerCount) {
+        this.consumer = consumerCount;
     }
 }

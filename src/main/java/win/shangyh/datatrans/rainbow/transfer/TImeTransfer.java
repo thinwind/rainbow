@@ -17,7 +17,7 @@ package win.shangyh.datatrans.rainbow.transfer;
 
 import java.time.LocalTime;
 
-import win.shangyh.datatrans.rainbow.DateUtil;
+import win.shangyh.datatrans.rainbow.util.DateUtil;
 
 /**
  *
@@ -27,11 +27,11 @@ import win.shangyh.datatrans.rainbow.DateUtil;
  * @since 2024-03-06  21:51
  *
  */
-public class TImeTransfer implements ColumnTransfer<LocalTime>{
+public class TimeTransfer implements ColumnTransfer<LocalTime>{
     
     private final DateUtil dateUtil;
     
-    public TImeTransfer(DateUtil dateUtil) {
+    public TimeTransfer(DateUtil dateUtil) {
         this.dateUtil = dateUtil;
     }
     

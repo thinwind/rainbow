@@ -17,7 +17,7 @@ package win.shangyh.datatrans.rainbow.transfer;
 
 import java.time.LocalDateTime;
 
-import win.shangyh.datatrans.rainbow.DateUtil;
+import win.shangyh.datatrans.rainbow.util.DateUtil;
 
 /**
  *

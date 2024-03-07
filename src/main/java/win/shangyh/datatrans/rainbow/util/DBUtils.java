@@ -1,4 +1,4 @@
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,7 +28,7 @@ public class DBUtils {
     }
 
 
-    static Connection newDbConnection(String url, String user, String password) {
+    public static Connection newDbConnection(String url, String user, String password) {
         try {
             return DriverManager.getConnection(url, user, password);
         } catch (Exception e) {

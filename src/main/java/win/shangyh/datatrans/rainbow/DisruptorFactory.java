@@ -19,6 +19,8 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import win.shangyh.datatrans.rainbow.config.ReadStrQueueConfig;
+import win.shangyh.datatrans.rainbow.config.WriteDbQuqueConfig;
 import win.shangyh.datatrans.rainbow.processor.RowDataProcessor;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 
@@ -39,11 +41,11 @@ public class DisruptorFactory {
     public Disruptor<RowString> readDisruptor(ReadStrQueueConfig readStrQueueConfig, String tableName,
             WriteDbQuqueConfig writeDbQuqueConfig, ConnectionPoolManager manager) {
         //disruptor队列
-        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readStrQueueConfig.getQueueSize(),
+        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readStrQueueConfig.getSize(),
                 DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new SleepingWaitStrategy());
 
         //线程池大小
-        int taskCount = readStrQueueConfig.getConsumerCount();
+        int taskCount = readStrQueueConfig.getConsumer();
 
         @SuppressWarnings("unchecked")
         EventHandler<RowString>[] handlerPool = new EventHandler[taskCount];
@@ -78,12 +80,12 @@ public class DisruptorFactory {
 
     public Disruptor<RowRecord> writeDisruptor(WriteDbQuqueConfig config) {
         //disruptor队列
-        Disruptor<RowRecord> disruptor = new Disruptor<>(RowRecord::new, config.getQueueSize(),
+        Disruptor<RowRecord> disruptor = new Disruptor<>(RowRecord::new, config.getSize(),
                 DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
 
         //disruptor任务处理器，数量与线程池大小一样，这样保证分发任务时，同时执行任务数不会超过
         //线程池大小
-        int taskCount = config.getConsumerCount();
+        int taskCount = config.getConsumer();
 
         @SuppressWarnings("unchecked")
         EventHandler<RowRecord>[] handlerPool = new EventHandler[taskCount];
