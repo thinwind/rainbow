@@ -19,7 +19,6 @@ import java.util.Base64.Encoder;
 
 import java.nio.charset.Charset;
 
-import com.zdsyh.blueland.bravet8583.impl.BytesRange;
 
 /**
  *
@@ -40,7 +39,6 @@ public final class BitUtil {
 
     public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    public static final Charset EBCDIC_CHARSET = Charset.forName("IBM500");//替代EBCDIC
     /**
      * 把一个数值使用ASCII码的字节数组表示
      * 
@@ -92,7 +90,7 @@ public final class BitUtil {
     }
 
     public static String toAsciiString(BytesRange bytes) {
-        return new String(bytes.data, bytes.offset, bytes.length, ASCII_CHARSET);
+        return bytes.toStringVal(ASCII_CHARSET);
     }
 
     /**
@@ -107,7 +105,7 @@ public final class BitUtil {
     }
 
     public static String toGBKString(BytesRange bytes) {
-        return new String(bytes.data, bytes.offset, bytes.length, GBK_CHARSET);
+        return bytes.toStringVal(GBK_CHARSET);
     }
 
     /**
@@ -122,7 +120,7 @@ public final class BitUtil {
     }
 
     public static String toUtf8String(BytesRange bytes) {
-        return new String(bytes.data, bytes.offset, bytes.length, UTF8_CHARSET);
+        return bytes.toStringVal(UTF8_CHARSET);
     }
 
     /**
@@ -154,6 +152,13 @@ public final class BitUtil {
     }
 
     public static String toHexString(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        if(data.length == 0) {
+            return "";
+        }
+        
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < data.length; i++) {
             String hex = Integer.toHexString(data[i] & 0xff);
@@ -163,14 +168,17 @@ public final class BitUtil {
     }
 
     public static String toHexString(BytesRange bytes) {
-        return toHexString(bytes.data, bytes.offset, bytes.length);
+        return bytes.toHexString();
     }
 
     public static String toHexString(byte[] data, int start, int length) {
         StringBuilder builder = new StringBuilder();
         for (int i = start; i < start + length; i++) {
-            String hex = Integer.toHexString(data[i] & 0xff);
-            builder.append(hex.length() == 2 ? hex : "0" + hex);
+            int v = data[i] & 0xff;
+            if (v < 16) {
+                builder.append("0");
+            }
+            builder.append(Integer.toHexString(v));
         }
         return builder.toString();
     }
@@ -180,7 +188,7 @@ public final class BitUtil {
      * @param asciiStr ASCII编码的字符串
      * @return asciiStr对应的ASCII码字节数组
      */
-    public static byte[] toByteArray(String asciiStr) {
+    public static byte[] toAsciiByteArray(String asciiStr) {
         return asciiStr.getBytes(ASCII_CHARSET);
     }
 
@@ -230,12 +238,7 @@ public final class BitUtil {
     }
 
     public static int joinBytesToUnsignedInt(BytesRange bytesRange) {
-        int r = 0;
-        for (int i = bytesRange.offset, cnt = bytesRange.length + bytesRange.offset; i < cnt; i++) {
-            int mask = 0xff << ((cnt - i - 1) * 8);
-            r = r | ((bytesRange.data[i] << ((cnt - i - 1) * 8)) & mask);
-        }
-        return r;
+        return joinBytesToUnsignedInt(bytesRange.getBytes());
     }
 
     /**
@@ -246,11 +249,11 @@ public final class BitUtil {
      * @return 2位的16进制全小写字符串
      */
     public static String byte2Hex(byte b) {
-        String hex = Integer.toHexString(b & 0xff);
-        if (hex.length() < 2) {
-            return "0" + hex;
+        int v = b & 0xff;
+        if (v < 16) {
+            return "0" + Integer.toHexString(v);
         } else {
-            return hex;
+            return Integer.toHexString(v);
         }
     }
 
@@ -266,18 +269,24 @@ public final class BitUtil {
      */
     public static byte[] hex2Bytes(String hex) {
         if (hex == null) {
-            throw new NumberFormatException("null");
+            return null;
         }
+        if(hex.isEmpty()) {
+            return new byte[0];
+        }
+        
         int hexLen = hex.length();
         if (hexLen % 2 != 0) {
             throw new IllegalArgumentException("The length of " + hex + " is not an even number.");
         }
+        
         char[] hexChars = hex.toCharArray();
         byte[] bytes = new byte[hexLen / 2];
         for (int i = 0; i < hexLen; i += 2) {
             bytes[i / 2] = (byte) (Character.digit(hexChars[i], 16) * 16
                     + Character.digit(hexChars[i + 1], 16));
         }
+        
         return bytes;
     }
 
@@ -330,6 +339,6 @@ public final class BitUtil {
     }
 
     public static byte[] base64Decode(String data) {
-        return base64Decoder.decode(BitUtil.toByteArray(data));
+        return base64Decoder.decode(BitUtil.toAsciiByteArray(data));
     }
 }

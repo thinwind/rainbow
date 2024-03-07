@@ -15,32 +15,35 @@
  */
 package win.shangyh.datatrans.rainbow.transfer;
 
-import win.shangyh.datatrans.rainbow.util.BitUtil;
-
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-06  21:54
+ * @since 2024-03-07  11:05
  *
  */
-public class XlobTransfer implements ColumnTransfer<byte[]> {
-
+public class ByteTransfer implements ColumnTransfer<Byte>{
+    
     static {
-        XlobTransfer xlobTransfer = new XlobTransfer();
-        ColumnTransferRegister.registerColumnTransfer(java.sql.Types.BLOB, xlobTransfer);
-        ColumnTransferRegister.registerColumnTransfer(java.sql.Types.CLOB, xlobTransfer);
+        ByteTransfer byteTransfer = new ByteTransfer();
+        ColumnTransferRegister.registerColumnTransfer(java.sql.Types.BIT, byteTransfer);
     }
 
     @Override
-    public byte[] transferFromString(String value) {
-        return BitUtil.hex2Bytes(value);
+    public Byte transferFromString(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return Byte.valueOf(value);
     }
 
     @Override
-    public String transferToString(byte[] value) {
-        return BitUtil.toHexString(value);
+    public String transferToString(Byte value) {
+        if (value == null) {
+            return null;
+        }
+        return value.toString();
     }
-
+    
 }

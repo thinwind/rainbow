@@ -1,12 +1,11 @@
 /*
  * Copyright 2022 Shang Yehua <niceshang@outlook.com>
  */
-package com.zdsyh.blueland.bravet8583.impl;
+package win.shangyh.datatrans.rainbow.util;
+
+import java.util.Arrays;
 
 import java.nio.charset.Charset;
-
-import com.zdsyh.blueland.bravet8583.utils.BitUtil;
-import com.zdsyh.blueland.bravet8583.utils.EbcdicTranslator;
 
 /**
  *
@@ -21,20 +20,15 @@ public class BytesRange {
     public static final BytesRange NONE = new BytesRange(new byte[0], 0, 0);
 
     static {
-        NONE.strValue = "";
-        NONE.bytes = NONE.data;
-        NONE.hash = 1;
+        NONE.bytes = new byte[0];
+        NONE.hash = -1;
     }
-
-    public final byte[] data;
-
-    public final int offset;
 
     public final int length;
 
-    private byte[] bytes;
+    private String hex;
 
-    private String strValue;
+    private byte[] bytes;
 
     private int hash;
 
@@ -58,86 +52,70 @@ public class BytesRange {
         if (data == null || data.length == 0) {
             return NONE;
         }
-        return new BytesRange(data, 0, data.length);
+        return new BytesRange(data, false);
     }
 
     public static BytesRange join(BytesRange... ranges) {
-        return join(0, ranges);
-    }
-
-    private static BytesRange join(int start, BytesRange... ranges) {
-        if (ranges == null || ranges.length == 0 || start >= ranges.length) {
+        if (ranges == null || ranges.length == 0) {
             return NONE;
         }
-        if (ranges.length - start == 1) {
-            return ranges[start];
+
+        int totalLen = 0;
+        for (BytesRange range : ranges) {
+            totalLen += range.length;
         }
-        BytesRange acc = ranges[start];
-        for (int i = start + 1; i < ranges.length; i++) {
-            if (acc.data == ranges[i].data) {
-                acc = acc.join(ranges[i]);
-            } else {
-                return acc.join(join(i, ranges));
-            }
+        byte[] compdBytes = new byte[totalLen];
+        int offset = 0;
+        for (BytesRange range : ranges) {
+            System.arraycopy(range.bytes, 0, compdBytes, offset, range.length);
+            offset += range.length;
         }
-        return acc;
+        return new BytesRange(compdBytes, true);
     }
 
     private BytesRange(byte[] data, int offset, int length) {
-        this.data = data;
-        this.offset = offset;
         this.length = length;
+        this.bytes = new byte[length];
+        System.arraycopy(data, offset, bytes, 0, length);
     }
 
-    private BytesRange(byte[] data) {
-        this.data = data;
-        this.offset = 0;
-        this.length = data.length;
-    }
-    //TODO w18404 添加E转码
-    public String getStrValue(Charset charset) {
-        if (strValue == null) {
-            if (charset.equals(BitUtil.EBCDIC_CHARSET)){
-                strValue = EbcdicTranslator.fromEbcdicBytes(this.getBytes());
-            }else{
-                strValue = new String(data, offset, length, charset);
-            }
+    private BytesRange(byte[] data, boolean innerBuild) {
+        if (innerBuild) {
+            this.bytes = data;
+            this.length = data.length;
+        } else {
+            this.bytes = Arrays.copyOf(data, data.length);
+            this.length = bytes.length;
         }
-        return strValue;
     }
 
     public String toStringVal(Charset charset) {
-        return new String(data, offset, length, charset);
+        return new String(bytes, charset);
     }
 
-    public byte[] bytesCopy() {
-        byte[] bytes = new byte[length];
-        System.arraycopy(data, offset, bytes, 0, length);
-        return bytes;
+    public String toHexString() {
+        if (hex == null) {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < length; i++) {
+                int v = bytes[i] & 0xff;
+                if (v < 16) {
+                    builder.append("0");
+                }
+                builder.append(Integer.toHexString(v));
+            }
+            hex = builder.toString();
+        }
+        return hex;
     }
 
     public byte byteAt(int i) {
-        return data[offset + i];
+        return bytes[i];
     }
 
     public byte[] getBytes() {
-        if (bytes == null) {
-            bytes = new byte[length];
-            System.arraycopy(data, offset, bytes, 0, length);
-        }
-        return bytes;
-    }
-    /**
-     * w18404
-     * @param length
-     * @return
-     */
-    public byte[] getBytes(int length) {
-        if (bytes == null) {
-            bytes = new byte[length];
-            System.arraycopy(data, offset, bytes, 0, length);
-        }
-        return bytes;
+        byte[] copy = new byte[bytes.length];
+        System.arraycopy(bytes, 0, copy, 0, bytes.length);
+        return copy;
     }
 
     public BytesRange subrange(int offset, int newLen) {
@@ -150,12 +128,12 @@ public class BytesRange {
         if (offset == 0 && newLen == length) {
             return this;
         }
-        return new BytesRange(data, this.offset + offset, newLen);
+        return new BytesRange(bytes, offset, newLen);
     }
 
     public BytesRange jump(int jump) {
-        if (offset + jump < 0 || jump > length) {
-            throw new IllegalArgumentException("Jump out of range(" + offset + jump + ").");
+        if (jump < 0 || jump > length) {
+            throw new IllegalArgumentException("Jump out of range(" + jump + ").");
         }
         if (jump == 0) {
             return this;
@@ -163,7 +141,7 @@ public class BytesRange {
         if (jump == length) {
             return NONE;
         }
-        return new BytesRange(data, this.offset + jump, length - jump);
+        return new BytesRange(bytes, jump, length - jump);
     }
 
     /**
@@ -177,7 +155,7 @@ public class BytesRange {
     }
 
     public BytesRange replace(final int offset, final BytesRange replacement) {
-        if (offset < 0 || offset > this.offset + this.length) {
+        if (offset < 0 || offset > this.length) {
             throw new IllegalArgumentException("offset is negative or length is not enough.");
         }
         BytesRange prefix = this.subrange(offset);
@@ -196,22 +174,19 @@ public class BytesRange {
         if (other.length == 0) {
             return this;
         }
-        //同底层数据优化
-        if (this.data == other.data && (this.offset + this.length == other.offset)) {
-            return new BytesRange(data, offset, this.length + other.length);
-        }
-        byte[] bytes = new byte[length + other.length];
-        System.arraycopy(this.data, this.offset, bytes, 0, this.length);
-        System.arraycopy(other.data, other.offset, bytes, this.length, other.length);
-        return new BytesRange(bytes);
+
+        byte[] compdBytes = new byte[length + other.length];
+        System.arraycopy(this.bytes, 0, compdBytes, 0, this.length);
+        System.arraycopy(other.bytes, 0, compdBytes, this.length, other.length);
+        return new BytesRange(compdBytes, true);
     }
 
     @Override
     public int hashCode() {
         int h = hash;
         if (h == 0) {
-            for (int i = offset; i < offset + length; i++) {
-                h = 31 * h + data[i];
+            for (int i = 0; i < length; i++) {
+                h = 31 * h + bytes[i];
             }
             hash = h;
         }
@@ -223,18 +198,22 @@ public class BytesRange {
         if (this == obj) {
             return true;
         }
+
         if (!(obj instanceof BytesRange)) {
             return false;
         }
+
         BytesRange other = (BytesRange) obj;
+        if (this.bytes == other.bytes) {
+            return true;
+        }
+
         if (other.length != length) {
             return false;
         }
-        if (this.data == other.data && this.offset == other.offset) {
-            return true;
-        }
+
         for (int i = 0; i < length; i++) {
-            if (data[offset + i] != other.data[other.offset + i]) {
+            if (bytes[i] != other.bytes[i]) {
                 return false;
             }
         }

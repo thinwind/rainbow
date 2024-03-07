@@ -60,7 +60,7 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     }
 
     private Object parseField(String val, int columnType) {
-        ColumnTransfer columnTransfer = ColumnTransferRegister.getColumnTransfer(columnType);
+        ColumnTransfer<? extends Object> columnTransfer = ColumnTransferRegister.getColumnTransfer(columnType);
         return columnTransfer.transferFromString(val);
     }
 
