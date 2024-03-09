@@ -48,7 +48,7 @@ public class RowProcessorFactoryImpl implements RowProcessorFactory {
 
     @Override
     public void registerRowDataProcessor(String tableName, Connection connection, String fieldSeparator) {
-        String sql = "select * from " + tableName + " limit 1";
+        String sql = "select * from " + tableName + " where 1=0";
         ResultSet rs = null;
         try {
             rs = connection.createStatement().executeQuery(sql);

@@ -39,18 +39,17 @@ public class DisruptorFactory {
      * @return
      */
     public Disruptor<RowString> readDisruptor(ReadStrQueueConfig readStrQueueConfig, String tableName,
-            WriteDbQuqueConfig writeDbQuqueConfig, ConnectionPoolManager manager) {
+            Disruptor<RowRecord> writeQueue, ConnectionPoolManager manager) {
         //disruptor队列
         Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readStrQueueConfig.getSize(),
                 DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new SleepingWaitStrategy());
-
         //线程池大小
         int taskCount = readStrQueueConfig.getConsumer();
 
         @SuppressWarnings("unchecked")
         EventHandler<RowString>[] handlerPool = new EventHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
-            handlerPool[i] = createWorkHandler(writeDisruptor(writeDbQuqueConfig), manager,
+            handlerPool[i] = createWorkHandler(writeQueue, manager,
                     rowProcessorFactory.getRowDataProcessor(tableName));
         }
         disruptor.handleEventsWith(handlerPool);

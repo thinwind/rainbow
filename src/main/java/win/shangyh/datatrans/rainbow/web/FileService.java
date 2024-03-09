@@ -13,26 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.web;
 
-import java.io.BufferedReader;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-02-26  14:28
+ * @since 2024-03-09  08:42
  *
  */
-public class FileReaderUtil {
+public interface FileService {
+
     
-    public static void read(String path) {
-        Files.lines(null, null)
-        Files.lines(Paths.get(path), Charset.forName("UTF-8")).forEach(null);
-    }
+    /**
+     * 读取文件并写入数据库
+     * @param ctlFile ctl文件
+     * @param datFile dat文件
+     * @return 写入数据库的记录数
+     * @throws Exception
+     */
+    int readFileAndWriteToDb(Path ctlFile, Path datFile) throws Exception;
+
+    /**
+     * 注册行数据处理器
+     * @param tableName 表名
+     * @throws Exception
+     */
+    void registerRowDataProcessor(String tableName) throws Exception;
+    
 }

@@ -22,7 +22,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
+import win.shangyh.datatrans.rainbow.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.DatabaseInfo;
+import win.shangyh.datatrans.rainbow.DisruptorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactoryImpl;
 import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
@@ -56,8 +58,19 @@ public class RbConfiguration {
         return new DateUtil(dateFormat, dateTimeFormat, timeFormat);
     }
     
+    @Bean
     public RowProcessorFactory rowProcessorFactory(){
         return new RowProcessorFactoryImpl();
+    }
+    
+    @Bean
+    public DisruptorFactory disruptorFactory(){
+        return new DisruptorFactory(rowProcessorFactory());
+    }
+    
+    @Bean
+    public ConnectionPoolManager connectionPoolManager(DatabaseInfo databaseInfo,@Value("${rb.database.maxconn}") int maxConnCount){
+        return new ConnectionPoolManager(databaseInfo,maxConnCount);
     }
     
     @PostConstruct
