@@ -18,6 +18,7 @@ package win.shangyh.datatrans.rainbow.processor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import win.shangyh.datatrans.rainbow.transfer.ColumnTransfer;
 import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
@@ -40,6 +41,8 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     
     private final String fieldSeparator;
 
+    private final String orignSep;
+
     private final Map<String,Integer> columnTypeMap = new HashMap<>();
     
     public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator, int[] columnTypes) {
@@ -50,22 +53,31 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
         this.tableName = tableName;
         this.rowTitles = rowTitles;
         this.columnTypes = columnTypes;
-        this.fieldSeparator = fieldSeparator;
+        this.fieldSeparator = Pattern.quote(fieldSeparator);
+        this.orignSep=fieldSeparator;
         initColumnTypes();
     }
 
     private void initColumnTypes() {
         for (int i = 0; i < columnTypes.length; i++) {
-            columnTypeMap.put(rowTitles[i], columnTypes[i]);
+            columnTypeMap.put(rowTitles[i].toLowerCase(), columnTypes[i]);
         }
     }
 
     @Override
     public Object[] parseRow(String row,String[] colums) {
+        boolean tailEmpty = row.endsWith(orignSep);
+        if(tailEmpty){
+            row = row+"$";
+        }
+
         String[] fields = row.split(fieldSeparator);
         Object[] result = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
-            result[i] = parseField(fields[i], columnTypeMap.get(colums[i]));
+            result[i] = parseField(fields[i], columnTypeMap.get(colums[i].toLowerCase()));
+        }
+        if(tailEmpty){
+            result[fields.length-1] = null;
         }
         return result;
     }

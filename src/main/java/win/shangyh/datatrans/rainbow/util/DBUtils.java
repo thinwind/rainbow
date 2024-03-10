@@ -18,8 +18,14 @@ public class DBUtils {
 
     static {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
             Class.forName("oracle.jdbc.driver.OracleDriver");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.ByteTransfer");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.DecimalTransfer");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.IntegerTransfer");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.LongTransfer");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.VarcharTransfer");
+            Class.forName("win.shangyh.datatrans.rainbow.transfer.XlobTransfer");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

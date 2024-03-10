@@ -23,11 +23,12 @@ public class RainbowApplication {
 	@Bean
 	public CommandLineRunner initDateProcessor(DateUtil dateUtil){
 		return args->{
-			DateTransfer dateTransfer = new DateTransfer(dateUtil);
-			ColumnTransferRegister.registerColumnTransfer(Types.DATE, dateTransfer);
+			Class.forName("win.shangyh.datatrans.rainbow.util.DBUtils");
+			// DateTransfer dateTransfer = new DateTransfer(dateUtil);
 			
 			DateTimeTransfer dateTimeTransfer = new DateTimeTransfer(dateUtil);
 			ColumnTransferRegister.registerColumnTransfer(Types.TIMESTAMP, dateTimeTransfer);
+			ColumnTransferRegister.registerColumnTransfer(Types.DATE, dateTimeTransfer);
 			
 			TimeTransfer timeTransfer = new TimeTransfer(dateUtil);
 			ColumnTransferRegister.registerColumnTransfer(Types.TIME, timeTransfer);

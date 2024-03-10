@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -92,6 +93,7 @@ public class FileServiceImpl implements FileService{
         var writer = queue;
         Files.lines(datFile, UTF8).filter(line->!line.isBlank()).forEach(row -> {
             writer.publishEvent((event, sequence) -> {
+                System.out.println("row:"+row);
                 event.setRow(row);
                 event.setColums(titles);
             });
@@ -106,6 +108,6 @@ public class FileServiceImpl implements FileService{
     }
     
     private String[] getColumns(Path ctlFile) throws Exception{
-        return Files.lines(ctlFile, UTF8).filter(row -> row.trim().isBlank()).findFirst().get().split(columnSeparator);
+        return Files.lines(ctlFile, UTF8).filter(row -> !row.trim().isBlank()).findFirst().get().split(Pattern.quote(columnSeparator));
     }
 }

@@ -78,8 +78,8 @@ public class ConnectionPoolManager {
 
     public ConnectionPoolManager(DatabaseInfo databaseInfo, int maxConnCount) {
         this.databaseInfo = databaseInfo;
-        pool = buildConnectionPool();
         this.maxConnCount = maxConnCount;
+        pool = buildConnectionPool();
     }
 
     static {
@@ -234,6 +234,11 @@ public class ConnectionPoolManager {
         @Override
         public Connection create(DatabaseInfo key) {
             Connection connection = DBUtils.newDbConnection(key.getJdbcUrl(), key.getAccount(), key.getPassword());
+            try {
+                connection.setAutoCommit(false);
+            } catch (SQLException e) {
+                logger.error("数据库连接设置自动提交失败", e);
+            }
             return new ManagedConnection(connection, ConnectionPoolManager.this);
         }
 

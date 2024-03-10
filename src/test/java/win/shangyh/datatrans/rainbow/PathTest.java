@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
@@ -72,5 +73,17 @@ public class PathTest {
         Path path = Paths.get("/home/ata/projects/a-project/a-file.txt");
         Path path2 = Paths.get("/home/ata/projects/a-project/a-file.txt");
         System.out.println(Files.isSameFile(path, path2));
+    }
+
+    @Test
+    public void splitTest(){
+        String seprator=Pattern.quote("^|^");
+        String row="^|^test1^|^描述1^|^10^|^2024-03-09 12:00:01^|^^|^^|^";
+
+        String[] fields = row.split(seprator);
+        int i=0;
+        for (String field : fields) {
+            System.out.println(i+++":"+field);
+        }
     }
 }

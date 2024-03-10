@@ -98,7 +98,9 @@ public class DisruptorFactory {
                 //首先记录异常信息
                 queueLogger.error("Write into database error", ex);
                 try {
-                    event.connection.close();
+                    if(event.connection != null){
+                        event.connection.close();
+                    }
                 } catch (Exception e) {
                     queueLogger.error("Closing connection error", e);
                 }
@@ -127,15 +129,13 @@ public class DisruptorFactory {
             try {
                 event.preparedStatement.execute();
                 event.connection.commit();
-            } catch (Exception e) {
-                //首先记录异常信息
-                event.connection.rollback();
-            }
-
-            try {
                 event.connection.close();
             } catch (Exception e) {
-                queueLogger.error("Closing connection error", e);
+                queueLogger.error("Write data error", e);
+                //首先记录异常信息
+                if(event.connection != null){
+                    event.connection.rollback();
+                }
             }
 
             //最后清理资源
