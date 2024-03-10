@@ -94,9 +94,9 @@ public class LoadController {
         }
         
         try {
-            int rows=fileService.readFileAndWriteToDb(ctlFile, datFile);
+            fileService.readFileAndWriteToDb(ctlFile, datFile,tableName);
             result.put("success", true);
-            result.put("message", "Load table "+tableName+" "+rows+" rows.");
+            result.put("message", "Load table "+tableName+" started!");
             return result;
         } catch (Exception e) {
             logger.error("加载文件错误", e);

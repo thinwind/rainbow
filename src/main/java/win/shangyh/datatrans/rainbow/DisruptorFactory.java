@@ -149,8 +149,9 @@ public class DisruptorFactory {
         return (event, sequence, endOfBatch) -> {
             //获取行数据
             String row = event.getRow();
+            String[] columns = event.getColums();
             //解析数据
-            Object[] rowValues = rowDataProcessor.parseRow(row);
+            Object[] rowValues = rowDataProcessor.parseRow(row,columns);
             String[] rowTitles = rowDataProcessor.getRowTitles();
             String tableName = rowDataProcessor.getTableName();
 

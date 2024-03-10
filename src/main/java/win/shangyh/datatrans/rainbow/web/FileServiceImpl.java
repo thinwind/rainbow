@@ -19,13 +19,22 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.lmax.disruptor.dsl.Disruptor;
+
 import win.shangyh.datatrans.rainbow.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.DisruptorFactory;
+import win.shangyh.datatrans.rainbow.RowRecord;
+import win.shangyh.datatrans.rainbow.RowString;
+import win.shangyh.datatrans.rainbow.config.ReadStrQueueConfig;
+import win.shangyh.datatrans.rainbow.config.WriteDbQuqueConfig;
+import win.shangyh.datatrans.rainbow.processor.RowDataProcessor;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 
 /**
@@ -47,6 +56,17 @@ public class FileServiceImpl implements FileService{
     
     @Autowired
     DisruptorFactory disruptorFactory;
+
+    @Autowired
+    private WriteDbQuqueConfig writeDbQuqueConfig;
+
+    @Autowired
+    private ReadStrQueueConfig readStrQueueConfig;
+
+    private final Map<String,Disruptor<RowString>> tableQueue = new ConcurrentHashMap<>();
+
+    private Disruptor<RowRecord> dbWriterQueue;
+
     
     private static final Charset UTF8 = Charset.forName("UTF-8");
     
@@ -54,10 +74,28 @@ public class FileServiceImpl implements FileService{
     private String columnSeparator;
     
     @Override
-    public int readFileAndWriteToDb(Path ctlFile, Path datFile) throws Exception {
-        String[] titles = getTitles(ctlFile);
-        
-        return 0;
+    public void readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception {
+        RowDataProcessor rowDataProcessor = this.rowProcessorFactory.getRowDataProcessor(table);
+        if(rowDataProcessor == null){
+            rowProcessorFactory.registerRowDataProcessor(table, poolManager.getPooledConnection(), columnSeparator);
+        }
+        if(dbWriterQueue == null){
+            dbWriterQueue = disruptorFactory.writeDisruptor(writeDbQuqueConfig);
+        }
+        Disruptor<RowString> queue = tableQueue.get(table);
+        if(queue == null){
+            queue = disruptorFactory.readDisruptor(readStrQueueConfig, table, dbWriterQueue, poolManager);
+            tableQueue.put(table, queue);
+        }
+
+        String[] titles = getColumns(ctlFile);
+        var writer = queue;
+        Files.lines(datFile, UTF8).filter(line->!line.isBlank()).forEach(row -> {
+            writer.publishEvent((event, sequence) -> {
+                event.setRow(row);
+                event.setColums(titles);
+            });
+        });
     }
 
     @Override
@@ -67,7 +105,7 @@ public class FileServiceImpl implements FileService{
         connection.close();
     }
     
-    private String[] getTitles(Path ctlFile) throws Exception{
+    private String[] getColumns(Path ctlFile) throws Exception{
         return Files.lines(ctlFile, UTF8).filter(row -> row.trim().isBlank()).findFirst().get().split(columnSeparator);
     }
 }

@@ -73,16 +73,4 @@ public class RbConfiguration {
         return new ConnectionPoolManager(databaseInfo,maxConnCount);
     }
     
-    @PostConstruct
-    public void postConfig(DateUtil dateUtil, DatabaseInfo databaseInfo){
-        DateTransfer dateTransfer = new DateTransfer(dateUtil);
-        ColumnTransferRegister.registerColumnTransfer(Types.DATE, dateTransfer);
-        
-        DateTimeTransfer dateTimeTransfer = new DateTimeTransfer(dateUtil);
-        ColumnTransferRegister.registerColumnTransfer(Types.TIMESTAMP, dateTimeTransfer);
-        
-        TimeTransfer timeTransfer = new TimeTransfer(dateUtil);
-        ColumnTransferRegister.registerColumnTransfer(Types.TIME, timeTransfer);
-        
-    }
 }

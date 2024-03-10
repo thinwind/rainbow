@@ -35,7 +35,7 @@ public interface FileService {
      * @return 写入数据库的记录数
      * @throws Exception
      */
-    int readFileAndWriteToDb(Path ctlFile, Path datFile) throws Exception;
+    void readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception;
 
     /**
      * 注册行数据处理器

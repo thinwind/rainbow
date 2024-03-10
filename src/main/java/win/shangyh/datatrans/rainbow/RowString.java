@@ -24,6 +24,8 @@ package win.shangyh.datatrans.rainbow;
  *
  */
 public class RowString {
+
+    private String[] colums;
     
     private String row;
     
@@ -34,8 +36,17 @@ public class RowString {
     public void setRow(String row) {
         this.row = row;
     }
+
+    public String[] getColums() {
+        return colums;
+    }
+
+    public void setColums(String[] colums) {
+        this.colums = colums;
+    }
     
     public void clear() {
         row = null;
+        colums = null;
     }
 }

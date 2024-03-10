@@ -15,6 +15,8 @@
  */
 package win.shangyh.datatrans.rainbow.processor;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import win.shangyh.datatrans.rainbow.transfer.ColumnTransfer;
@@ -37,6 +39,8 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     private final int[] columnTypes;
     
     private final String fieldSeparator;
+
+    private final Map<String,Integer> columnTypeMap = new HashMap<>();
     
     public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator, int[] columnTypes) {
         Objects.requireNonNull(tableName, "tableName must not be null");
@@ -47,14 +51,21 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
         this.rowTitles = rowTitles;
         this.columnTypes = columnTypes;
         this.fieldSeparator = fieldSeparator;
+        initColumnTypes();
+    }
+
+    private void initColumnTypes() {
+        for (int i = 0; i < columnTypes.length; i++) {
+            columnTypeMap.put(rowTitles[i], columnTypes[i]);
+        }
     }
 
     @Override
-    public Object[] parseRow(String row) {
+    public Object[] parseRow(String row,String[] colums) {
         String[] fields = row.split(fieldSeparator);
         Object[] result = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
-            result[i] = parseField(fields[i], columnTypes[i]);
+            result[i] = parseField(fields[i], columnTypeMap.get(colums[i]));
         }
         return result;
     }
