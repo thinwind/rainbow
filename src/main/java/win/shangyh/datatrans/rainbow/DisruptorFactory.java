@@ -127,11 +127,14 @@ public class DisruptorFactory {
 
     private WorkHandler<RowRecord> createWriteHandler() {
         return (event) -> {
-            event.getCounter().incrementAndGet();
+            long cnt=event.getCounter().incrementAndGet();
             //执行写入
             try {
-                event.preparedStatement.execute();
-                event.connection.commit();
+                event.preparedStatement.addBatch();
+                if(cnt%500==0){
+                    event.preparedStatement.executeBatch();
+                    event.connection.commit();
+                }
                 event.connection.close();
             } catch (Exception e) {
                 queueLogger.error("Write data error", e);

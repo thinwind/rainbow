@@ -16,8 +16,10 @@
 package win.shangyh.datatrans.rainbow;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import java.sql.*;
 
@@ -30,14 +32,19 @@ import java.sql.*;
  *
  */
 public class ManagedConnection implements Connection {
+    
+    private final static AtomicInteger ID_GENERATOR = new AtomicInteger(1);
 
     private final Connection innerConnection;
 
     private final ConnectionPoolManager poolManager;
+    
+    private final int id;
 
     public ManagedConnection(Connection innerConnection, ConnectionPoolManager poolManager) {
         this.innerConnection = innerConnection;
         this.poolManager = poolManager;
+        id = ID_GENERATOR.getAndIncrement();
     }
 
     @Override
@@ -336,6 +343,26 @@ public class ManagedConnection implements Connection {
     @Override
     public Properties getClientInfo() throws SQLException {
         return innerConnection.getClientInfo();
+    }
+
+    @Override
+    public int hashCode() {
+        return id;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ManagedConnection other = (ManagedConnection) obj;
+        return id == other.id;
     }
     
 }

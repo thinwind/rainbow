@@ -33,6 +33,8 @@ public class RowString {
     
     private AtomicLong counter;
     
+    private boolean endStage=false;
+    
     public String getRow() {
         return row;
     }
@@ -57,9 +59,18 @@ public class RowString {
         this.counter = counter;
     }
     
+    public boolean isEndStage() {
+        return endStage;
+    }
+    
+    public void setEndStage() {
+        this.endStage = true;
+    }
+    
     public void clear() {
         row = null;
         colums = null;
         counter = null;
+        endStage = false;
     }
 }

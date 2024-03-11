@@ -15,22 +15,15 @@
  */
 package win.shangyh.datatrans.rainbow.config;
 
-import java.sql.Types;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import jakarta.annotation.PostConstruct;
 import win.shangyh.datatrans.rainbow.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.DatabaseInfo;
 import win.shangyh.datatrans.rainbow.DisruptorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactoryImpl;
-import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
-import win.shangyh.datatrans.rainbow.transfer.DateTimeTransfer;
-import win.shangyh.datatrans.rainbow.transfer.DateTransfer;
-import win.shangyh.datatrans.rainbow.transfer.TimeTransfer;
 import win.shangyh.datatrans.rainbow.util.DateUtil;
 
 /**

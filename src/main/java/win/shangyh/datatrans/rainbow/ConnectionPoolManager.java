@@ -54,7 +54,7 @@ public class ConnectionPoolManager {
      * 如果一个连接从开始使用，到检测时超过了这个时间
      * 就把它kill掉，不论是否有任务在执行
      */
-    private static final long CONNECTION_TIMEOUT = 30 * MINUTES;
+    private static final long CONNECTION_TIMEOUT =2 * 60 * MINUTES;
 
     /**
      * 连接池默认的检测间隔时间
@@ -75,6 +75,8 @@ public class ConnectionPoolManager {
     final DatabaseInfo databaseInfo;
     
     final int maxConnCount;
+    
+    java.util.concurrent.CopyOnWriteArraySet
 
     public ConnectionPoolManager(DatabaseInfo databaseInfo, int maxConnCount) {
         this.databaseInfo = databaseInfo;
