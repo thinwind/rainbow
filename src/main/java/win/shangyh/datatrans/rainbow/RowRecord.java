@@ -15,6 +15,8 @@
  */
 package win.shangyh.datatrans.rainbow;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
@@ -31,6 +33,8 @@ public class RowRecord {
     Connection connection;
 
     PreparedStatement preparedStatement;
+    
+    private AtomicLong counter;
 
     public Connection getConnection() {
         return connection;
@@ -48,6 +52,14 @@ public class RowRecord {
         this.preparedStatement = preparedStatement;
     }
 
+    public AtomicLong getCounter() {
+        return counter;
+    }
+    
+    public void setCounter(AtomicLong counter) {
+        this.counter = counter;
+    }
+    
     public void clear() {
         connection = null;
         preparedStatement = null;

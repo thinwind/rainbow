@@ -15,33 +15,33 @@
  */
 package win.shangyh.datatrans.rainbow.web;
 
-import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-09  08:42
+ * @since 2024-03-11  10:01
  *
  */
-public interface FileService {
-
+public class RecordCounter {
     
-    /**
-     * 读取文件并写入数据库
-     * @param ctlFile ctl文件
-     * @param datFile dat文件
-     * @return 写入数据库的记录数
-     * @throws Exception
-     */
-    RecordCounter readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception;
-
-    /**
-     * 注册行数据处理器
-     * @param tableName 表名
-     * @throws Exception
-     */
-    void registerRowDataProcessor(String tableName) throws Exception;
+    private final long sourceCount;
     
+    private final AtomicLong targetCounter;
+    
+    public RecordCounter(long sourceCount, AtomicLong targetCounter) {
+        this.sourceCount = sourceCount;
+        this.targetCounter = targetCounter;
+    }
+
+    public long getSourceCount() {
+        return sourceCount;
+    }
+
+    public AtomicLong getTargetCounter() {
+        return targetCounter;
+    }
+
 }

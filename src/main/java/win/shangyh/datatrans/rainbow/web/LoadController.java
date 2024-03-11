@@ -94,9 +94,20 @@ public class LoadController {
         }
         
         try {
-            fileService.readFileAndWriteToDb(ctlFile, datFile,tableName);
+            long start = System.currentTimeMillis();
+            RecordCounter counter = fileService.readFileAndWriteToDb(ctlFile, datFile,tableName);
+            while(counter.getSourceCount() > counter.getTargetCounter().get()){
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    logger.error("等待加载文件完成错误", e);
+                }
+                
+            }
+            long end = System.currentTimeMillis();
             result.put("success", true);
-            result.put("message", "Load table "+tableName+" started!");
+            result.put("message", "Load table "+tableName+" finished. "+counter.getSourceCount()+" records loaded.");
+            result.put("time_expense", end-start);
             return result;
         } catch (Exception e) {
             logger.error("加载文件错误", e);

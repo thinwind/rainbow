@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +76,7 @@ public class FileServiceImpl implements FileService{
     private String columnSeparator;
     
     @Override
-    public void readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception {
+    public RecordCounter readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception {
         RowDataProcessor rowDataProcessor = this.rowProcessorFactory.getRowDataProcessor(table);
         if(rowDataProcessor == null){
             rowProcessorFactory.registerRowDataProcessor(table, poolManager.getPooledConnection(), columnSeparator);
@@ -91,13 +92,18 @@ public class FileServiceImpl implements FileService{
 
         String[] titles = getColumns(ctlFile);
         var writer = queue;
+        AtomicLong count = new AtomicLong(0);
+        AtomicLong target = new AtomicLong(0);
         Files.lines(datFile, UTF8).filter(line->!line.isBlank()).forEach(row -> {
+            count.getAndIncrement();
             writer.publishEvent((event, sequence) -> {
-                System.out.println("row:"+row);
                 event.setRow(row);
                 event.setColums(titles);
+                event.setCounter(target);
             });
         });
+        
+        return new RecordCounter(count.get(), target);
     }
 
     @Override

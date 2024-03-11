@@ -15,6 +15,8 @@
  */
 package win.shangyh.datatrans.rainbow;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  *
  * TODO 说明
@@ -28,6 +30,8 @@ public class RowString {
     private String[] colums;
     
     private String row;
+    
+    private AtomicLong counter;
     
     public String getRow() {
         return row;
@@ -45,8 +49,17 @@ public class RowString {
         this.colums = colums;
     }
     
+    public AtomicLong getCounter() {
+        return counter;
+    }
+    
+    public void setCounter(AtomicLong counter) {
+        this.counter = counter;
+    }
+    
     public void clear() {
         row = null;
         colums = null;
+        counter = null;
     }
 }

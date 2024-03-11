@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 
 import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
 import win.shangyh.datatrans.rainbow.transfer.DateTimeTransfer;
-import win.shangyh.datatrans.rainbow.transfer.DateTransfer;
 import win.shangyh.datatrans.rainbow.transfer.TimeTransfer;
 import win.shangyh.datatrans.rainbow.util.DateUtil;
 

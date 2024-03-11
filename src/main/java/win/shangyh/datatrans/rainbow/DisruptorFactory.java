@@ -9,9 +9,9 @@ package win.shangyh.datatrans.rainbow;
 
 import java.sql.Connection;
 
-import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.ExceptionHandler;
 import com.lmax.disruptor.SleepingWaitStrategy;
+import com.lmax.disruptor.WorkHandler;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.DaemonThreadFactory;
@@ -42,17 +42,18 @@ public class DisruptorFactory {
             Disruptor<RowRecord> writeQueue, ConnectionPoolManager manager) {
         //disruptor队列
         Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readStrQueueConfig.getSize(),
-                DaemonThreadFactory.INSTANCE, ProducerType.SINGLE, new SleepingWaitStrategy());
+                DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
         //线程池大小
         int taskCount = readStrQueueConfig.getConsumer();
 
         @SuppressWarnings("unchecked")
-        EventHandler<RowString>[] handlerPool = new EventHandler[taskCount];
+        WorkHandler<RowString>[] handlerPool = new WorkHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
             handlerPool[i] = createWorkHandler(writeQueue, manager,
                     rowProcessorFactory.getRowDataProcessor(tableName));
         }
-        disruptor.handleEventsWith(handlerPool);
+        // disruptor.handleEventsWith(handlerPool);
+        disruptor.handleEventsWithWorkerPool(handlerPool);
         disruptor.setDefaultExceptionHandler(new ExceptionHandler<RowString>() {
 
             @Override
@@ -87,18 +88,19 @@ public class DisruptorFactory {
         int taskCount = config.getConsumer();
 
         @SuppressWarnings("unchecked")
-        EventHandler<RowRecord>[] handlerPool = new EventHandler[taskCount];
+        WorkHandler<RowRecord>[] handlerPool = new WorkHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
             handlerPool[i] = createWriteHandler();
         }
-        disruptor.handleEventsWith(handlerPool);
+        // disruptor.handleEventsWith(handlerPool);
+        disruptor.handleEventsWithWorkerPool(handlerPool);
         disruptor.setDefaultExceptionHandler(new ExceptionHandler<RowRecord>() {
             @Override
             public void handleEventException(Throwable ex, long sequence, RowRecord event) {
                 //首先记录异常信息
                 queueLogger.error("Write into database error", ex);
                 try {
-                    if(event.connection != null){
+                    if (event.connection != null) {
                         event.connection.close();
                     }
                 } catch (Exception e) {
@@ -123,8 +125,9 @@ public class DisruptorFactory {
         return disruptor;
     }
 
-    private EventHandler<RowRecord> createWriteHandler() {
-        return (event, sequence, endOfBatch) -> {
+    private WorkHandler<RowRecord> createWriteHandler() {
+        return (event) -> {
+            event.getCounter().incrementAndGet();
             //执行写入
             try {
                 event.preparedStatement.execute();
@@ -133,7 +136,7 @@ public class DisruptorFactory {
             } catch (Exception e) {
                 queueLogger.error("Write data error", e);
                 //首先记录异常信息
-                if(event.connection != null){
+                if (event.connection != null) {
                     event.connection.rollback();
                 }
             }
@@ -143,16 +146,16 @@ public class DisruptorFactory {
         };
     }
 
-    private EventHandler<RowString> createWorkHandler(Disruptor<RowRecord> writeDisruptor,
+    private WorkHandler<RowString> createWorkHandler(Disruptor<RowRecord> writeDisruptor,
             ConnectionPoolManager manager,
             RowDataProcessor rowDataProcessor) {
-        return (event, sequence, endOfBatch) -> {
+        return (event) -> {
             //获取行数据
             String row = event.getRow();
             String[] columns = event.getColums();
             //解析数据
-            Object[] rowValues = rowDataProcessor.parseRow(row,columns);
-            String[] rowTitles = rowDataProcessor.getRowTitles();
+            Object[] rowValues = rowDataProcessor.parseRow(row, columns);
+            // String[] rowTitles = rowDataProcessor.getRowTitles();
             String tableName = rowDataProcessor.getTableName();
 
             StringBuilder builder = new StringBuilder();
@@ -162,7 +165,7 @@ public class DisruptorFactory {
 
             for (int i = 0; i < rowValues.length; i++) {
                 if (rowValues[i] != null) {
-                    builder.append(rowTitles[i]).append(",");
+                    builder.append(columns[i]).append(",");
                     params[idx++] = rowValues[i];
                 }
             }
@@ -182,6 +185,7 @@ public class DisruptorFactory {
 
             //发布写入任务
             writeDisruptor.publishEvent((rec, recSeq) -> {
+                rec.setCounter(event.getCounter());
                 rec.connection = connection;
                 rec.preparedStatement = preparedStatement;
             });
