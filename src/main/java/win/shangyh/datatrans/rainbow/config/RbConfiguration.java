@@ -19,9 +19,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import win.shangyh.datatrans.rainbow.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.DatabaseInfo;
 import win.shangyh.datatrans.rainbow.DisruptorFactory;
+import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactoryImpl;
 import win.shangyh.datatrans.rainbow.util.DateUtil;

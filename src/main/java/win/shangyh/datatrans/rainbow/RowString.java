@@ -35,6 +35,8 @@ public class RowString {
     
     private boolean endStage=false;
     
+    private boolean posioned=false;
+    
     public String getRow() {
         return row;
     }

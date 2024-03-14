@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.connection;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import java.sql.*;
+
+import win.shangyh.datatrans.rainbow.DatabaseInfo;
 
 /**
  *
@@ -39,12 +40,19 @@ public class ManagedConnection implements Connection {
 
     private final ConnectionPoolManager poolManager;
     
+    private final DatabaseInfo databaseInfo;
+    
+    private PreparedStatement preparedStatement;
+    
+    private boolean borrowed = false;
+    
     private final int id;
 
-    public ManagedConnection(Connection innerConnection, ConnectionPoolManager poolManager) {
+    public ManagedConnection(Connection innerConnection, ConnectionPoolManager poolManager, DatabaseInfo databaseInfo) {
         this.innerConnection = innerConnection;
         this.poolManager = poolManager;
         id = ID_GENERATOR.getAndIncrement();
+        this.databaseInfo = databaseInfo;
     }
 
     @Override
@@ -190,7 +198,16 @@ public class ManagedConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return innerConnection.prepareStatement(sql);
+        if(preparedStatement==null){
+            synchronized (this) {
+                if(preparedStatement==null){
+                    preparedStatement = innerConnection.prepareStatement(sql);
+                    return preparedStatement;
+                }
+            }
+        }
+        preparedStatement.addBatch(sql);
+        return preparedStatement;
     }
 
     @Override
@@ -343,6 +360,18 @@ public class ManagedConnection implements Connection {
     @Override
     public Properties getClientInfo() throws SQLException {
         return innerConnection.getClientInfo();
+    }
+    
+    public DatabaseInfo getDatabaseInfo() {
+        return databaseInfo;
+    }
+    
+    public boolean isBorrowed() {
+        return borrowed;
+    }
+    
+    public void setBorrowed(boolean borrowed) {
+        this.borrowed = borrowed;
     }
 
     @Override

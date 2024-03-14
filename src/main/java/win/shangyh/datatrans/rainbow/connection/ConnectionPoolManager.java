@@ -1,8 +1,10 @@
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.connection;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -28,6 +30,7 @@ import org.apache.commons.pool2.impl.GenericKeyedObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import win.shangyh.datatrans.rainbow.DatabaseInfo;
 import win.shangyh.datatrans.rainbow.exception.RainbowSqlConnectFailedException;
 import win.shangyh.datatrans.rainbow.util.DBUtils;
 import win.shangyh.datatrans.rainbow.util.DateUtil;
@@ -41,7 +44,7 @@ public class ConnectionPoolManager {
      */
     private final static int DEFAULT_TIME_OUT = 120;
 
-    private final Map<Connection, TimedDbInfo> connCache = new ConcurrentHashMap<>();
+    private final Map<ManagedConnection, TimedDbInfo> connCache = new ConcurrentHashMap<>();
 
     /**
      * 1分钟的时长
@@ -76,7 +79,11 @@ public class ConnectionPoolManager {
     
     final int maxConnCount;
     
-    java.util.concurrent.CopyOnWriteArraySet
+    private final Set<ManagedConnection> returnedConnections = new HashSet<>();
+    
+    private final Object lock = new Object();
+    
+    private STAGE stage = STAGE.COLLECTING;
 
     public ConnectionPoolManager(DatabaseInfo databaseInfo, int maxConnCount) {
         this.databaseInfo = databaseInfo;
@@ -92,7 +99,7 @@ public class ConnectionPoolManager {
 
     ObservableObjectPool buildConnectionPool() {
         //初始化连接池
-        GenericKeyedObjectPoolConfig<Connection> config = new GenericKeyedObjectPoolConfig<>();
+        GenericKeyedObjectPoolConfig<ManagedConnection> config = new GenericKeyedObjectPoolConfig<>();
         config.setFairness(false);
         //连接超时时间
         config.setMinEvictableIdleDuration(Duration.ofMillis(DEFAULT_IDLE_TIMEOUT));
@@ -113,44 +120,73 @@ public class ConnectionPoolManager {
         return pool.listAllObjects();
     }
 
-    public Connection getPooledConnection() {
+    public ManagedConnection getPooledConnection() {
         try {
-            return pool.borrowObject(this.databaseInfo);
+            ManagedConnection connection = pool.borrowObject(this.databaseInfo);
+            returnedConnections.remove(connection);
+            return connection;
         } catch (Exception e) {
             throw new RainbowSqlConnectFailedException(e);
         }
     }
 
+    public void commitAllReturnedConnections(){
+        synchronized(lock){
+            
+        }
+    }
+    
+    public void setToCollecting(){
+        synchronized(lock){
+            if(stage==STAGE.COLLECTING){
+               return;
+            }
+            stage = STAGE.COLLECTING;
+        }
+    }
+    
+    public void setToCommiting(){
+        synchronized(lock){
+            if(stage==STAGE.COMMITING){
+               return;
+            }
+            stage = STAGE.COMMITING;
+            for(ManagedConnection conn : returnedConnections){
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    logger.error("提交连接失败", e);
+                }
+            }
+            returnedConnections.clear();
+        }
+    }
+    
     /**
      * 在强制关闭连接后，可能会导致异常
      *
      * @param databaseInfo
      * @param connection
      */
-    public void returnConnection(Connection connection) {
-        boolean returned = false;
-        try {
-            if (connection != null && !connection.isClosed() && connection.isValid(DEFAULT_TIME_OUT)) {
-                // 在正常归还连接之后
-                // 一定要及时从检测中清理掉
-                // 否则会被强制关闭
-                connection.commit();
-                pool.returnObject(databaseInfo, connection);
-                connCache.remove(connection);
-                returned = true;
+    public void returnConnection(ManagedConnection connection) {
+        boolean commit;
+        synchronized(lock){
+            if(stage==STAGE.COLLECTING){
+                commit = false;
+                returnedConnections.add(connection);
+            }else{
+                commit = true;
             }
-        } catch (Exception e) {
-            logger.warn("归还连接失败,连接信息:{}", databaseInfo.getJdbcUrl(), e);
         }
-        if (!returned) {
+        commit = true;
+        if(commit){
             try {
-                //从连接池中移除
-                pool.invalidateObject(databaseInfo, connection);
-                connCache.remove(connection);
-            } catch (Exception e) {
-                logger.error("从连接池移除连接失败,连接信息:{}", databaseInfo.getJdbcUrl(), e);
+                connection.commit();
+            } catch (SQLException e) {
+                logger.error("提交连接失败", e);
             }
         }
+        pool.returnObject(databaseInfo, connection);
     }
 
     /**
@@ -178,7 +214,8 @@ public class ConnectionPoolManager {
 
     private void abortConnections(boolean killAll) {
         LocalDateTime now = LocalDateTime.now();
-        for (Map.Entry<Connection, TimedDbInfo> entry : connCache.entrySet()) {
+        for (Map.Entry<ManagedConnection, TimedDbInfo> entry : connCache.entrySet()) {
+            // pool.invalidateObject(databaseInfo, getPooledConnection(), null);
             TimedDbInfo info = entry.getValue();
             if (info == null) {
                 continue;
@@ -211,46 +248,46 @@ public class ConnectionPoolManager {
         return connCache.values().stream().map(item -> item.toString()).collect(Collectors.toList());
     }
 
-    class ObservableObjectPool extends GenericKeyedObjectPool<DatabaseInfo, Connection> {
-        public ObservableObjectPool(KeyedPooledObjectFactory<DatabaseInfo, Connection> factory,
-                final GenericKeyedObjectPoolConfig<Connection> config) {
+    class ObservableObjectPool extends GenericKeyedObjectPool<DatabaseInfo, ManagedConnection> {
+        public ObservableObjectPool(KeyedPooledObjectFactory<DatabaseInfo, ManagedConnection> factory,
+                final GenericKeyedObjectPoolConfig<ManagedConnection> config) {
             super(factory, config);
         }
 
         @Override
-        public Connection borrowObject(DatabaseInfo key) throws Exception {
-            Connection connection = super.borrowObject(key);
+        public ManagedConnection borrowObject(DatabaseInfo key) throws Exception {
+            ManagedConnection connection = super.borrowObject(key);
             connCache.put(connection, new TimedDbInfo(key, LocalDateTime.now()));
             return connection;
         }
 
         @Override
-        public Connection borrowObject(DatabaseInfo key, long borrowMaxWaitMillis) throws Exception {
-            Connection connection = super.borrowObject(key, borrowMaxWaitMillis);
+        public ManagedConnection borrowObject(DatabaseInfo key, long borrowMaxWaitMillis) throws Exception {
+            ManagedConnection connection = super.borrowObject(key, borrowMaxWaitMillis);
             connCache.put(connection, new TimedDbInfo(key, LocalDateTime.now()));
             return connection;
         }
     }
 
-    class ConnectionFactory extends BaseKeyedPooledObjectFactory<DatabaseInfo, Connection> {
+    class ConnectionFactory extends BaseKeyedPooledObjectFactory<DatabaseInfo, ManagedConnection> {
         @Override
-        public Connection create(DatabaseInfo key) {
+        public ManagedConnection create(DatabaseInfo key) {
             Connection connection = DBUtils.newDbConnection(key.getJdbcUrl(), key.getAccount(), key.getPassword());
             try {
                 connection.setAutoCommit(false);
             } catch (SQLException e) {
                 logger.error("数据库连接设置自动提交失败", e);
             }
-            return new ManagedConnection(connection, ConnectionPoolManager.this);
+            return new ManagedConnection(connection, ConnectionPoolManager.this, key);
         }
 
         @Override
-        public PooledObject<Connection> wrap(Connection value) {
+        public PooledObject<ManagedConnection> wrap(ManagedConnection value) {
             return new DefaultPooledObject<>(value);
         }
 
         @Override
-        public void destroyObject(DatabaseInfo key, PooledObject<Connection> p) {
+        public void destroyObject(DatabaseInfo key, PooledObject<ManagedConnection> p) {
             Connection conn = p.getObject();
             if (conn == null) {
                 return;
@@ -277,8 +314,8 @@ public class ConnectionPoolManager {
         }
 
         @Override
-        public boolean validateObject(DatabaseInfo key, PooledObject<Connection> p) {
-            Connection conn = p.getObject();
+        public boolean validateObject(DatabaseInfo key, PooledObject<ManagedConnection> p) {
+            ManagedConnection conn = p.getObject();
             try {
                 return conn != null && !conn.isClosed() && conn.isValid(DEFAULT_TIME_OUT);
             } catch (SQLException e) {
@@ -293,7 +330,7 @@ public class ConnectionPoolManager {
          * 归还Connection时调用
          * 钝化前，提交之前的sql事务
          */
-        public void passivateObject(DatabaseInfo key, PooledObject<Connection> p) throws Exception {
+        public void passivateObject(DatabaseInfo key, PooledObject<ManagedConnection> p) throws Exception {
             Connection conn = p.getObject();
             if (conn != null && !conn.isClosed() && !conn.getAutoCommit()) {
                 try {
@@ -357,5 +394,9 @@ public class ConnectionPoolManager {
                 t.setPriority(Thread.NORM_PRIORITY);
             return t;
         }
+    }
+    
+    static enum STAGE {
+        COLLECTING, COMMITING
     }
 }

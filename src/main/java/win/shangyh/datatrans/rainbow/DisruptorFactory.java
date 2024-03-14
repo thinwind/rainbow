@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import win.shangyh.datatrans.rainbow.config.ReadStrQueueConfig;
 import win.shangyh.datatrans.rainbow.config.WriteDbQuqueConfig;
+import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.processor.RowDataProcessor;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 
@@ -90,7 +91,7 @@ public class DisruptorFactory {
         @SuppressWarnings("unchecked")
         WorkHandler<RowRecord>[] handlerPool = new WorkHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
-            handlerPool[i] = createWriteHandler();
+            handlerPool[i] = createWriteHandler(config.getBatchSize());
         }
         // disruptor.handleEventsWith(handlerPool);
         disruptor.handleEventsWithWorkerPool(handlerPool);
@@ -99,13 +100,13 @@ public class DisruptorFactory {
             public void handleEventException(Throwable ex, long sequence, RowRecord event) {
                 //首先记录异常信息
                 queueLogger.error("Write into database error", ex);
-                try {
-                    if (event.connection != null) {
-                        event.connection.close();
-                    }
-                } catch (Exception e) {
-                    queueLogger.error("Closing connection error", e);
-                }
+                // try {
+                //     if (event.connection != null) {
+                //         event.connection.close();
+                //     }
+                // } catch (Exception e) {
+                //     queueLogger.error("Closing connection error", e);
+                // }
 
                 //最后清理资源
                 event.clear();
@@ -125,23 +126,25 @@ public class DisruptorFactory {
         return disruptor;
     }
 
-    private WorkHandler<RowRecord> createWriteHandler() {
+    private WorkHandler<RowRecord> createWriteHandler(int batchSize) {
         return (event) -> {
             long cnt=event.getCounter().incrementAndGet();
             //执行写入
             try {
                 event.preparedStatement.addBatch();
-                if(cnt%500==0){
+                if(cnt%batchSize==0){
                     event.preparedStatement.executeBatch();
                     event.connection.commit();
                 }
-                event.connection.close();
+               
             } catch (Exception e) {
                 queueLogger.error("Write data error", e);
                 //首先记录异常信息
                 if (event.connection != null) {
                     event.connection.rollback();
                 }
+            }finally{
+                event.connection.close();
             }
 
             //最后清理资源

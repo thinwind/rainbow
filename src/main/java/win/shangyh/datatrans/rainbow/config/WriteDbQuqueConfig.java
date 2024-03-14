@@ -33,6 +33,8 @@ public class WriteDbQuqueConfig {
     private int size;
     
     private int consumer;
+    
+    private int batchSize;
 
     public int getSize() {
         return size;
@@ -48,5 +50,13 @@ public class WriteDbQuqueConfig {
 
     public void setConsumer(int consumerCount) {
         this.consumer = consumerCount;
+    }
+    
+    public int getBatchSize() {
+        return batchSize;
+    }
+    
+    public void setBatchSize(int batchSize) {
+        this.batchSize = batchSize;
     }
 }

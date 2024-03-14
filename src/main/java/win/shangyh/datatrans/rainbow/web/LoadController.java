@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
+
 /**
  *
  * TODO 说明
@@ -42,48 +44,51 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/load")
 public class LoadController {
-    
+
     //logger
     private final static Logger logger = LoggerFactory.getLogger(LoadController.class);
-    
+
     @Value("${rb.file.in.dir}")
     private String loadBaseDir;
-    
+
     @Value("${rb.file.ctl}")
     private String ctlSuffix;
-    
+
     @Value("${rb.file.dat}")
     private String datSuffix;
-    
+
     @Autowired
     private FileService fileService;
-    
-    private final static String TOKEN="RtlTbLd2024";
-    
+
+    private final static String TOKEN = "RtlTbLd2024";
+
+    @Autowired
+    ConnectionPoolManager poolManager;
+
     // private final Charset charset = Charset.forName("UTF-8");
-    
+
     @PostMapping("/{tableName}")
-    public Object loadTable(@PathVariable String tableName,String token){
-        if(!TOKEN.equals(token)){
+    public Object loadTable(@PathVariable String tableName, String token) {
+        if (!TOKEN.equals(token)) {
             return "Token error!";
         }
-        
+
         Map<String, Object> result = new HashMap<>();
-        
-        Path ctlFile = Paths.get(loadBaseDir, tableName+ ctlSuffix);
-        if(!Files.exists(ctlFile)){
+
+        Path ctlFile = Paths.get(loadBaseDir, tableName + ctlSuffix);
+        if (!Files.exists(ctlFile)) {
             result.put("success", false);
-            result.put("message", "Table "+tableName+ctlSuffix+" not exists!");
+            result.put("message", "Table " + tableName + ctlSuffix + " not exists!");
             return result;
         }
-        
-        Path datFile = Paths.get(loadBaseDir, tableName+ datSuffix);
-        if(!Files.exists(datFile)){
+
+        Path datFile = Paths.get(loadBaseDir, tableName + datSuffix);
+        if (!Files.exists(datFile)) {
             result.put("success", false);
-            result.put("message", "Table "+tableName+datSuffix+" not exists!");
+            result.put("message", "Table " + tableName + datSuffix + " not exists!");
             return result;
         }
-        
+
         try {
             fileService.registerRowDataProcessor(tableName);
         } catch (Exception e) {
@@ -92,22 +97,24 @@ public class LoadController {
             result.put("message", e.toString());
             return result;
         }
-        
+
         try {
             long start = System.currentTimeMillis();
-            RecordCounter counter = fileService.readFileAndWriteToDb(ctlFile, datFile,tableName);
-            while(counter.getSourceCount() > counter.getTargetCounter().get()){
+            RecordCounter counter = fileService.readFileAndWriteToDb(ctlFile, datFile, tableName);
+            while (counter.getSourceCount() > counter.getTargetCounter().get()) {
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
                     logger.error("等待加载文件完成错误", e);
                 }
-                
+
             }
+            poolManager.setToCollecting();
             long end = System.currentTimeMillis();
             result.put("success", true);
-            result.put("message", "Load table "+tableName+" finished. "+counter.getSourceCount()+" records loaded.");
-            result.put("time_expense", end-start);
+            result.put("message",
+                    "Load table " + tableName + " finished. " + counter.getSourceCount() + " records loaded.");
+            result.put("time_expense", end - start);
             return result;
         } catch (Exception e) {
             logger.error("加载文件错误", e);

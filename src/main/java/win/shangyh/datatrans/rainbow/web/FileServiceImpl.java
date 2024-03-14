@@ -30,12 +30,12 @@ import org.springframework.stereotype.Service;
 
 import com.lmax.disruptor.dsl.Disruptor;
 
-import win.shangyh.datatrans.rainbow.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.DisruptorFactory;
 import win.shangyh.datatrans.rainbow.RowRecord;
 import win.shangyh.datatrans.rainbow.RowString;
 import win.shangyh.datatrans.rainbow.config.ReadStrQueueConfig;
 import win.shangyh.datatrans.rainbow.config.WriteDbQuqueConfig;
+import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
 import win.shangyh.datatrans.rainbow.processor.RowDataProcessor;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 
@@ -102,7 +102,7 @@ public class FileServiceImpl implements FileService{
                 event.setCounter(target);
             });
         });
-        
+        poolManager.setToCommiting();
         return new RecordCounter(count.get(), target);
     }
 
