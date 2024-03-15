@@ -1,0 +1,32 @@
+    /**
+     * 方式四
+     * 在方式三的基础上，取消自动提交sql语句，当sql语句都提交了才手动提交sql语句
+     * 需将Connection conn;连接的【conn.setAutoCommit(false)】(设置自动提交=否)
+     */
+    @Test
+    public void bulkSubmissionTest4() {
+        long start = System.currentTimeMillis();
+        Connection conn = jdbcUtils.getConnection();//获取数据库连接
+        String sql = "insert into a(id, name) VALUES (?,null)";
+        PreparedStatement ps = null;
+        try {
+            ps = conn.prepareStatement(sql);
+            conn.setAutoCommit(false);//取消自动提交
+            for (int i = 1; i <= 1000000; i++) {
+                ps.setObject(1, i);
+                ps.addBatch();
+                if (i % 500 == 0) {
+                    ps.executeBatch();
+                    ps.clearBatch();
+                }
+            }
+            ps.executeBatch();
+            ps.clearBatch();
+            conn.commit();//所有语句都执行完毕后才手动提交sql语句
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            jdbcUtils.close(conn, ps, null);
+        }
+        System.out.println("百万条数据插入用时：" + (System.currentTimeMillis() - start)+"【单位：毫秒】");
+    }

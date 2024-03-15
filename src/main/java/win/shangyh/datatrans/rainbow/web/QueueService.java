@@ -13,28 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow.processor;
+package win.shangyh.datatrans.rainbow.web;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  17:01
+ * @since 2024-03-16  02:06
  *
  */
-public interface RowDataProcessor {
+public interface QueueService {
 
-    Object[] parseRow(String row,String[] colums);
+    /**
+    * 注册行数据处理器
+    * @param tableName 表名
+    * @throws Exception
+    */
+    void registerRowDataProcessor(String tableName)
+            throws Exception;
 
-    String[] getRowTitles();
+    /**
+     * 注册读取队列
+     * @param tableName 表名
+     * @throws Exception
+     * @return void
+     * @since 2024-03-16  02:06
+     */
+    public void registerReadQueue(String tableName) throws Exception;
     
-    int[] getColumnTypes();
-
-    String getTableName();
     
-    String getInsertSql();
-    
-    String getColumnSeprator();
-    
+    /**
+     * 注销读取队列
+     * @param tableName
+     * @throws Exception
+     */
+    public void unregisterReadQueue(String tableName) throws Exception;
 }

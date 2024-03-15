@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow;
+package win.shangyh.datatrans.rainbow.data;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  *
@@ -26,16 +26,18 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  */
 public class RowString {
+    
+    private final static AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+    
+    public final int id;
 
     private String[] colums;
     
     private String row;
     
-    private AtomicLong counter;
-    
-    private boolean endStage=false;
-    
-    private boolean posioned=false;
+    public RowString() {
+        id = ID_GENERATOR.getAndIncrement();
+    }
     
     public String getRow() {
         return row;
@@ -53,26 +55,8 @@ public class RowString {
         this.colums = colums;
     }
     
-    public AtomicLong getCounter() {
-        return counter;
-    }
-    
-    public void setCounter(AtomicLong counter) {
-        this.counter = counter;
-    }
-    
-    public boolean isEndStage() {
-        return endStage;
-    }
-    
-    public void setEndStage() {
-        this.endStage = true;
-    }
-    
     public void clear() {
         row = null;
         colums = null;
-        counter = null;
-        endStage = false;
     }
 }

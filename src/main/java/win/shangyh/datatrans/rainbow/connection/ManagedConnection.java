@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import java.sql.*;
 
-import win.shangyh.datatrans.rainbow.DatabaseInfo;
-
 /**
  *
  * 受管理的连接
@@ -38,17 +36,13 @@ public class ManagedConnection implements Connection {
 
     private final Connection innerConnection;
 
-    private final ConnectionPoolManager poolManager;
+    private final RainbowPool poolManager;
     
     private final DatabaseInfo databaseInfo;
-    
-    private PreparedStatement preparedStatement;
-    
-    private boolean borrowed = false;
-    
+
     private final int id;
 
-    public ManagedConnection(Connection innerConnection, ConnectionPoolManager poolManager, DatabaseInfo databaseInfo) {
+    public ManagedConnection(Connection innerConnection, RainbowPool poolManager, DatabaseInfo databaseInfo) {
         this.innerConnection = innerConnection;
         this.poolManager = poolManager;
         id = ID_GENERATOR.getAndIncrement();
@@ -198,16 +192,7 @@ public class ManagedConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        if(preparedStatement==null){
-            synchronized (this) {
-                if(preparedStatement==null){
-                    preparedStatement = innerConnection.prepareStatement(sql);
-                    return preparedStatement;
-                }
-            }
-        }
-        preparedStatement.addBatch(sql);
-        return preparedStatement;
+        return innerConnection.prepareStatement(sql);
     }
 
     @Override
@@ -366,14 +351,6 @@ public class ManagedConnection implements Connection {
         return databaseInfo;
     }
     
-    public boolean isBorrowed() {
-        return borrowed;
-    }
-    
-    public void setBorrowed(boolean borrowed) {
-        this.borrowed = borrowed;
-    }
-
     @Override
     public int hashCode() {
         return id;

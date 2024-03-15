@@ -27,7 +27,6 @@ import java.nio.file.Path;
  */
 public interface FileService {
 
-    
     /**
      * 读取文件并写入数据库
      * @param ctlFile ctl文件
@@ -35,13 +34,7 @@ public interface FileService {
      * @return 写入数据库的记录数
      * @throws Exception
      */
-    RecordCounter readFileAndWriteToDb(Path ctlFile, Path datFile,String table) throws Exception;
+    long readFileAndWriteToDb(Path ctlFile, Path datFile, String table) throws Exception;
 
-    /**
-     * 注册行数据处理器
-     * @param tableName 表名
-     * @throws Exception
-     */
-    void registerRowDataProcessor(String tableName) throws Exception;
-    
+
 }

@@ -20,17 +20,20 @@ public class RainbowApplication {
 	}
 
 	@Bean
-	public CommandLineRunner initDateProcessor(DateUtil dateUtil){
-		return args->{
-			Class.forName("win.shangyh.datatrans.rainbow.util.DBUtils");
-			// DateTransfer dateTransfer = new DateTransfer(dateUtil);
-			
-			DateTimeTransfer dateTimeTransfer = new DateTimeTransfer(dateUtil);
-			ColumnTransferRegister.registerColumnTransfer(Types.TIMESTAMP, dateTimeTransfer);
-			ColumnTransferRegister.registerColumnTransfer(Types.DATE, dateTimeTransfer);
-			
-			TimeTransfer timeTransfer = new TimeTransfer(dateUtil);
-			ColumnTransferRegister.registerColumnTransfer(Types.TIME, timeTransfer);
+	public CommandLineRunner initDateProcessor(DateUtil dateUtil) {
+		return args -> {
+			// register date transfer
+			registerDateTransfer(dateUtil);
 		};
+	}
+
+	private void registerDateTransfer(DateUtil dateUtil) throws Exception {
+		Class.forName("win.shangyh.datatrans.rainbow.util.DBUtils");
+		DateTimeTransfer dateTimeTransfer = new DateTimeTransfer(dateUtil);
+		ColumnTransferRegister.registerColumnTransfer(Types.TIMESTAMP, dateTimeTransfer);
+		ColumnTransferRegister.registerColumnTransfer(Types.DATE, dateTimeTransfer);
+
+		TimeTransfer timeTransfer = new TimeTransfer(dateUtil);
+		ColumnTransferRegister.registerColumnTransfer(Types.TIME, timeTransfer);
 	}
 }

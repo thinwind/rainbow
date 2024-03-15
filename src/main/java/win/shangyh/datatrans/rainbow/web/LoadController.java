@@ -31,7 +31,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
+import win.shangyh.datatrans.rainbow.connection.RainbowPool;
+import win.shangyh.datatrans.rainbow.data.BatchProcessor;
+import win.shangyh.datatrans.rainbow.data.BatchProcessorRegister;
+import win.shangyh.datatrans.rainbow.data.LineCounter;
+import win.shangyh.datatrans.rainbow.data.TableCounter;
 
 /**
  *
@@ -63,7 +67,10 @@ public class LoadController {
     private final static String TOKEN = "RtlTbLd2024";
 
     @Autowired
-    ConnectionPoolManager poolManager;
+    RainbowPool poolManager;
+
+    @Autowired
+    QueueService queueService;
 
     // private final Charset charset = Charset.forName("UTF-8");
 
@@ -90,7 +97,9 @@ public class LoadController {
         }
 
         try {
-            fileService.registerRowDataProcessor(tableName);
+            // fileService.registerRowDataProcessor(tableName);
+            queueService.registerRowDataProcessor(tableName);
+            queueService.registerReadQueue(tableName);
         } catch (Exception e) {
             logger.error("注册行数据处理器错误", e);
             result.put("success", false);
@@ -99,21 +108,34 @@ public class LoadController {
         }
 
         try {
+            LineCounter.reset(tableName);
+            TableCounter.reset(tableName);
+
             long start = System.currentTimeMillis();
-            RecordCounter counter = fileService.readFileAndWriteToDb(ctlFile, datFile, tableName);
-            while (counter.getSourceCount() > counter.getTargetCounter().get()) {
+            long recCnt = fileService.readFileAndWriteToDb(ctlFile, datFile, tableName);
+            while (recCnt > LineCounter.get(tableName)) {
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     logger.error("等待加载文件完成错误", e);
                 }
-
             }
-            poolManager.setToCollecting();
+
+            BatchProcessor batchProcessor = BatchProcessorRegister.getBatchProcessor(tableName);
+
+            do {
+                try {
+                    batchProcessor.flush();
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    logger.error("等待加载文件完成错误", e);
+                }
+            } while (recCnt > TableCounter.get(tableName));
+
             long end = System.currentTimeMillis();
             result.put("success", true);
             result.put("message",
-                    "Load table " + tableName + " finished. " + counter.getSourceCount() + " records loaded.");
+                    "Load table " + tableName + " finished. " + recCnt + " records loaded.");
             result.put("time_expense", end - start);
             return result;
         } catch (Exception e) {

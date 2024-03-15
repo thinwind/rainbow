@@ -13,28 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow.processor;
+package win.shangyh.datatrans.rainbow.queue;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.lmax.disruptor.dsl.Disruptor;
+
+import win.shangyh.datatrans.rainbow.data.RowString;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  17:01
+ * @since 2024-03-16  02:03
  *
  */
-public interface RowDataProcessor {
+public class QueueRegister {
+    
+    private final static Map<String, Disruptor<RowString>> QUEUE_MAP = new ConcurrentHashMap<>();
+    
+    public static void registerQueue(String table, Disruptor<RowString> queue){
+        QUEUE_MAP.put(table, queue);
+    }
+    
+    public static Disruptor<RowString> getQueue(String table){
+        return QUEUE_MAP.get(table);
+    }
 
-    Object[] parseRow(String row,String[] colums);
-
-    String[] getRowTitles();
-    
-    int[] getColumnTypes();
-
-    String getTableName();
-    
-    String getInsertSql();
-    
-    String getColumnSeprator();
-    
+    public static void unregisterQueue(String tableName) {
+        QUEUE_MAP.remove(tableName);
+    }
 }

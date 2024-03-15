@@ -15,15 +15,18 @@
  */
 package win.shangyh.datatrans.rainbow.config;
 
+import com.lmax.disruptor.dsl.Disruptor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import win.shangyh.datatrans.rainbow.DatabaseInfo;
-import win.shangyh.datatrans.rainbow.DisruptorFactory;
-import win.shangyh.datatrans.rainbow.connection.ConnectionPoolManager;
+import win.shangyh.datatrans.rainbow.connection.DatabaseInfo;
+import win.shangyh.datatrans.rainbow.connection.RainbowPool;
+import win.shangyh.datatrans.rainbow.data.RowRecord;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactory;
 import win.shangyh.datatrans.rainbow.processor.RowProcessorFactoryImpl;
+import win.shangyh.datatrans.rainbow.queue.QueueFactory;
 import win.shangyh.datatrans.rainbow.util.DateUtil;
 
 /**
@@ -57,13 +60,19 @@ public class RbConfiguration {
     }
     
     @Bean
-    public DisruptorFactory disruptorFactory(){
-        return new DisruptorFactory(rowProcessorFactory());
+    public QueueFactory disruptorFactory(){
+        return new QueueFactory(rowProcessorFactory());
     }
     
     @Bean
-    public ConnectionPoolManager connectionPoolManager(DatabaseInfo databaseInfo,@Value("${rb.database.maxconn}") int maxConnCount){
-        return new ConnectionPoolManager(databaseInfo,maxConnCount);
+    public RainbowPool connectionPoolManager(DatabaseInfo databaseInfo,@Value("${rb.database.maxconn}") int maxConnCount){
+        return new RainbowPool(databaseInfo,maxConnCount);
+    }
+    
+    @Bean
+    public Disruptor<RowRecord> dbQueue(WriteDbQuqueConfig writeDbQuqueConfig){
+        QueueFactory factory = disruptorFactory();
+        return factory.writeDbQueue(writeDbQuqueConfig,connectionPoolManager(null,0));
     }
     
 }

@@ -1,0 +1,42 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
+ 
+public class JDBCNullExample {
+ 
+ public static void main(String[] args) throws Exception{
+  Connection connection = null;
+  try {   
+   connection = openConnection();
+   String name = null;
+   Long id = null;
+   
+   PreparedStatement ps = connection.prepareStatement("select * from person 
+                                                                            where first_name = ? and id = ?");
+   ps.setString(1,name);
+   
+   if(id == null) {
+    ps.setNull(2, Types.INTEGER);
+   }else {
+    ps.setLong(2, id);
+   }
+   ResultSet rs = ps.executeQuery(); 
+   
+   System.out.println(rs.getFetchSize());
+   rs.close();
+  }catch(Exception exception) {
+   exception.printStackTrace();
+  }finally {
+   if(connection != null) {
+    connection.close();
+   }
+  }  
+ }
+ 
+ private static Connection openConnection() throws Exception{  
+   Class.forName("oracle.jdbc.OracleDriver");
+   return DriverManager.getConnection("jdbc:oracle:thin:@IP:orcl", "user","password");   
+ }
+}

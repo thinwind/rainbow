@@ -31,21 +31,24 @@ import win.shangyh.datatrans.rainbow.transfer.ColumnTransferRegister;
  * @since 2024-03-02  18:02
  *
  */
-public class DefaultRowDataProceessorImpl implements RowDataProcessor{
-    
+public class DefaultRowDataProceessorImpl implements RowDataProcessor {
+
     private final String tableName;
-    
+
     private final String[] rowTitles;
-    
+
     private final int[] columnTypes;
-    
+
     private final String fieldSeparator;
 
     private final String orignSep;
 
-    private final Map<String,Integer> columnTypeMap = new HashMap<>();
-    
-    public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator, int[] columnTypes) {
+    private final Map<String, Integer> columnTypeMap = new HashMap<>();
+
+    private final String insertSql;
+
+    public DefaultRowDataProceessorImpl(String tableName, String[] rowTitles, String fieldSeparator,
+            int[] columnTypes) {
         Objects.requireNonNull(tableName, "tableName must not be null");
         Objects.requireNonNull(rowTitles, "rowTitles must not be null");
         Objects.requireNonNull(fieldSeparator, "fieldSeparator must not be null");
@@ -54,8 +57,29 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
         this.rowTitles = rowTitles;
         this.columnTypes = columnTypes;
         this.fieldSeparator = Pattern.quote(fieldSeparator);
-        this.orignSep=fieldSeparator;
+        this.orignSep = fieldSeparator;
+        this.insertSql = buildInsertSql();
         initColumnTypes();
+    }
+
+    private String buildInsertSql() {
+        StringBuilder sb = new StringBuilder("insert into ");
+        sb.append(tableName).append(" (");
+        for (int i = 0; i < rowTitles.length; i++) {
+            sb.append(rowTitles[i]);
+            if (i < rowTitles.length - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append(") values (");
+        for (int i = 0; i < rowTitles.length; i++) {
+            sb.append("?");
+            if (i < rowTitles.length - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append(")");
+        return sb.toString();
     }
 
     private void initColumnTypes() {
@@ -65,19 +89,16 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     }
 
     @Override
-    public Object[] parseRow(String row,String[] colums) {
-        boolean tailEmpty = row.endsWith(orignSep);
-        if(tailEmpty){
-            row = row+"$";
-        }
-
+    public Object[] parseRow(String row, String[] colums) {
         String[] fields = row.split(fieldSeparator);
-        Object[] result = new Object[fields.length];
+        var valueMap = new HashMap<String, Object>();
         for (int i = 0; i < fields.length; i++) {
-            result[i] = parseField(fields[i], columnTypeMap.get(colums[i].toLowerCase()));
+            valueMap.put(colums[i], parseField(fields[i], columnTypeMap.get(colums[i])));
         }
-        if(tailEmpty){
-            result[fields.length-1] = null;
+        var result = new Object[rowTitles.length];
+
+        for (int i = 0; i < fields.length; i++) {
+            result[i] = valueMap.get(rowTitles[i]);
         }
         return result;
     }
@@ -96,5 +117,20 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor{
     public String getTableName() {
         return tableName;
     }
-    
+
+    @Override
+    public String getInsertSql() {
+        return insertSql;
+    }
+
+    @Override
+    public String getColumnSeprator() {
+        return orignSep;
+    }
+
+    @Override
+    public int[] getColumnTypes() {
+        return columnTypes;
+    }
+
 }
