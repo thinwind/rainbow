@@ -15,9 +15,6 @@
  */
 package win.shangyh.datatrans.rainbow.queue;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 

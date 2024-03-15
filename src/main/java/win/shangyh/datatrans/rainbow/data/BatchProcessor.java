@@ -16,7 +16,6 @@
 package win.shangyh.datatrans.rainbow.data;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.lmax.disruptor.dsl.Disruptor;
 

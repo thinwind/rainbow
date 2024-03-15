@@ -126,7 +126,7 @@ public class LoadController {
             do {
                 try {
                     batchProcessor.flush();
-                    Thread.sleep(50);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     logger.error("等待加载文件完成错误", e);
                 }
