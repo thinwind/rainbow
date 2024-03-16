@@ -15,9 +15,14 @@
  */
 package win.shangyh.datatrans.rainbow.web;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
+
+import sun.util.logging.resources.logging;
 
 /**
  *
@@ -43,7 +48,13 @@ public class UnloadController {
             return "Token error!";
         }
         
+        long start = System.currentTimeMillis();
+        Map<String, Object> result = new HashMap<>();
+
+        dbService.unload(tableName,unloadBaseDir);
         
-        return null;
+        long end = System.currentTimeMillis();
+        result.put("time", end - start);
+        return result;
     }
 }

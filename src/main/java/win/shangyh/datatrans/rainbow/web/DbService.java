@@ -24,5 +24,7 @@ package win.shangyh.datatrans.rainbow.web;
  *
  */
 public interface DbService {
+
+    void unload(String tableName, String unloadBaseDir);
     
 }

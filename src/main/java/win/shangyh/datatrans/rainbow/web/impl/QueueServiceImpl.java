@@ -88,21 +88,21 @@ public class QueueServiceImpl implements QueueService {
     }
 
     public synchronized void registerReadQueue(String tableName) {
-        var queue = QueueRegister.getQueue(tableName);
+        var queue = QueueRegister.getFileReadQueue(tableName);
         if (queue != null) {
             return;
         }
         queue = queueFactory.readFileQueue(readStrQueueConfig, tableName);
-        QueueRegister.registerQueue(tableName, queue);
+        QueueRegister.registerFileReadQueue(tableName, queue);
     }
 
     @Override
     public synchronized void unregisterReadQueue(String tableName) throws Exception {
-        var queue = QueueRegister.getQueue(tableName);
+        var queue = QueueRegister.getFileReadQueue(tableName);
         if (queue != null) {
             queue.shutdown();
         }
-        QueueRegister.unregisterQueue(tableName);
+        QueueRegister.unregisterFileReadQueue(tableName);
     }
 
 }

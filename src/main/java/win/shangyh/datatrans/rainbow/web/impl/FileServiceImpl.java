@@ -47,7 +47,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public long readFileAndWriteToDb(Path ctlFile, Path datFile, String table) throws Exception {
         String[] titles = getColumns(ctlFile);
-        var writer = QueueRegister.getQueue(table);
+        var writer = QueueRegister.getFileReadQueue(table);
         AtomicLong count = new AtomicLong(0);
         Files.lines(datFile, UTF8).filter(line -> !line.isBlank()).forEach(row -> {
             count.getAndIncrement();

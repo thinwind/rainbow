@@ -34,15 +34,15 @@ public class QueueRegister {
     
     private final static Map<String, Disruptor<RowString>> QUEUE_MAP = new ConcurrentHashMap<>();
     
-    public static void registerQueue(String table, Disruptor<RowString> queue){
+    public static void registerFileReadQueue(String table, Disruptor<RowString> queue){
         QUEUE_MAP.put(table, queue);
     }
     
-    public static Disruptor<RowString> getQueue(String table){
+    public static Disruptor<RowString> getFileReadQueue(String table){
         return QUEUE_MAP.get(table);
     }
 
-    public static void unregisterQueue(String tableName) {
+    public static void unregisterFileReadQueue(String tableName) {
         QUEUE_MAP.remove(tableName);
     }
 }
