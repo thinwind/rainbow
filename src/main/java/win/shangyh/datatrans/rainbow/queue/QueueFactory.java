@@ -28,6 +28,7 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import win.shangyh.datatrans.rainbow.config.ReadDbQueueConfig;
 import win.shangyh.datatrans.rainbow.config.ReadStrQueueConfig;
 import win.shangyh.datatrans.rainbow.config.WriteDbQuqueConfig;
 import win.shangyh.datatrans.rainbow.connection.RainbowPool;
@@ -55,6 +56,26 @@ public class QueueFactory {
 
     public QueueFactory(RowProcessorFactory rowProcessorFactory) {
         this.rowProcessorFactory = rowProcessorFactory;
+    }
+    
+    public Disruptor<RowString> readDbQueue(ReadDbQueueConfig readDbQueueConf){
+        //disruptor队列
+        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readDbQueueConf.getBufferSize(),
+                DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
+        //线程池大小
+        int taskCount = readDbQueueConf.getWorder();
+        
+        @SuppressWarnings("unchecked")
+        WorkHandler<RowString>[] handlerPool = new WorkHandler[taskCount];
+        for (int i = 0; i < taskCount; i++) {
+            handlerPool[i] = createDbReadWorder();
+        }
+    }
+
+    private WorkHandler<RowString> createDbReadWorder() {
+        return event -> {
+            
+        };
     }
 
     public Disruptor<RowString> readFileQueue(ReadStrQueueConfig readStrQueueConfig, String tableName) {
