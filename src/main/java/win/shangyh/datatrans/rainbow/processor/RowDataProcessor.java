@@ -26,6 +26,8 @@ package win.shangyh.datatrans.rainbow.processor;
 public interface RowDataProcessor {
 
     Object[] parseRow(String row,String[] colums);
+    
+    String mergeRow(Object[] colums);
 
     String[] getRowTitles();
     

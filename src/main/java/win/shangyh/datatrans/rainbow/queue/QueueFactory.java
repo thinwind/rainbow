@@ -18,6 +18,7 @@ package win.shangyh.datatrans.rainbow.queue;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
+import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.ExceptionHandler;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.WorkHandler;
@@ -35,6 +36,7 @@ import win.shangyh.datatrans.rainbow.connection.RainbowPool;
 import win.shangyh.datatrans.rainbow.data.BatchProcessor;
 import win.shangyh.datatrans.rainbow.data.BatchProcessorRegister;
 import win.shangyh.datatrans.rainbow.data.LineCounter;
+import win.shangyh.datatrans.rainbow.data.LinePersister;
 import win.shangyh.datatrans.rainbow.data.RowRecord;
 import win.shangyh.datatrans.rainbow.data.RowString;
 import win.shangyh.datatrans.rainbow.data.TableCounter;
@@ -57,25 +59,101 @@ public class QueueFactory {
     public QueueFactory(RowProcessorFactory rowProcessorFactory) {
         this.rowProcessorFactory = rowProcessorFactory;
     }
-    
-    public Disruptor<RowString> readDbQueue(ReadDbQueueConfig readDbQueueConf){
+
+    public Disruptor<RowRecord> readDbQueue(ReadDbQueueConfig readDbQueueConf, String tableName,
+            Disruptor<RowString> writeFileQueue) {
         //disruptor队列
-        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, readDbQueueConf.getBufferSize(),
+        Disruptor<RowRecord> disruptor = new Disruptor<>(RowRecord::new, readDbQueueConf.getBufferSize(),
                 DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
         //线程池大小
-        int taskCount = readDbQueueConf.getWorder();
-        
+        int taskCount = readDbQueueConf.getWorker();
+
         @SuppressWarnings("unchecked")
-        WorkHandler<RowString>[] handlerPool = new WorkHandler[taskCount];
+        WorkHandler<RowRecord>[] handlerPool = new WorkHandler[taskCount];
         for (int i = 0; i < taskCount; i++) {
-            handlerPool[i] = createDbReadWorder();
+            handlerPool[i] = createDbReadWorker(tableName, writeFileQueue);
         }
+
+        disruptor.handleEventsWithWorkerPool(handlerPool);
+
+        Logger queueLogger = LoggerFactory.getLogger("DatabaseReaderQueue");
+        disruptor.setDefaultExceptionHandler(new ExceptionHandler<RowRecord>() {
+
+            @Override
+            public void handleEventException(Throwable ex, long sequence, RowRecord event) {
+                //首先记录异常信息
+                queueLogger.error("Read row data error", ex);
+                event.clear();
+            }
+
+            @Override
+            public void handleOnStartException(Throwable ex) {
+                queueLogger.error("Read Disruptor starts error", ex);
+            }
+
+            @Override
+            public void handleOnShutdownException(Throwable ex) {
+                queueLogger.error("Read Disruptor shutdown error", ex);
+            }
+
+        });
+
+        disruptor.start();
+        return disruptor;
     }
 
-    private WorkHandler<RowString> createDbReadWorder() {
+    private WorkHandler<RowRecord> createDbReadWorker(String tableName, Disruptor<RowString> writeFileQueue) {
         return event -> {
-            
+            try {
+                RowDataProcessor processor = rowProcessorFactory.getRowDataProcessor(tableName);
+                var row = processor.mergeRow(event.getValues());
+                writeFileQueue.publishEvent((e, sequence) -> {
+                    e.setRow(row);
+                });
+            } finally {
+                LineCounter.incrementAndGet(tableName);
+                event.clear();
+            }
         };
+    }
+
+    public Disruptor<RowString> writeFileQueue(LinePersister persister, ReadDbQueueConfig config) {
+        Disruptor<RowString> disruptor = new Disruptor<>(RowString::new, config.getBufferSize(),
+                DaemonThreadFactory.INSTANCE, ProducerType.MULTI, new SleepingWaitStrategy());
+        Logger queueLogger = LoggerFactory.getLogger("FileWriteQueue");
+        disruptor.setDefaultExceptionHandler(new ExceptionHandler<RowString>() {
+
+            @Override
+            public void handleEventException(Throwable ex, long sequence, RowString event) {
+                //首先记录异常信息
+                queueLogger.error("Write row data error", ex);
+                event.clear();
+            }
+
+            @Override
+            public void handleOnStartException(Throwable ex) {
+                queueLogger.error("Write Disruptor starts error", ex);
+            }
+
+            @Override
+            public void handleOnShutdownException(Throwable ex) {
+                queueLogger.error("Write Disruptor shutdown error", ex);
+            }
+
+        });
+
+        EventHandler<RowString> handler = (event, sequence, endOfBatch) -> {
+            try {
+                persister.addLine(event.getRow());
+            } finally {
+                event.clear();
+            }
+        };
+
+        disruptor.handleEventsWith(handler);
+        disruptor.start();
+        
+        return disruptor;
     }
 
     public Disruptor<RowString> readFileQueue(ReadStrQueueConfig readStrQueueConfig, String tableName) {

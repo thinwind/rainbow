@@ -13,40 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package win.shangyh.datatrans.rainbow.config;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+package win.shangyh.datatrans.rainbow.data;
 
 /**
  *
  * TODO 说明
  *
  * @author Shang Yehua <niceshang@outlook.com>
- * @since 2024-03-01  16:13
+ * @since 2024-03-22  16:12
  *
  */
-@Configuration
-@ConfigurationProperties(prefix = "rb.read.queue.file")
-public class ReadStrQueueConfig {
+public interface LinePersister {
     
-    private int size;
+    void addLine(String line);
     
-    private int consumer;
-
-    public int getSize() {
-        return size;
-    }
-
-    public void setSize(int queueSize) {
-        this.size = queueSize;
-    }
-
-    public int getConsumer() {
-        return consumer;
-    }
-
-    public void setConsumer(int consumerCount) {
-        this.consumer = consumerCount;
-    }
+    void flush();
 }

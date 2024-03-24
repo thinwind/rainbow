@@ -133,4 +133,18 @@ public class DefaultRowDataProceessorImpl implements RowDataProcessor {
         return columnTypes;
     }
 
+    @Override
+    public String mergeRow(Object[] colums) {
+        var builder = new StringBuilder();
+        for (int i = 0; i < colums.length; i++) {
+            if (colums[i] != null) {
+                builder.append(colums[i]);
+            }
+            if (i < colums.length - 1) {
+                builder.append(orignSep);
+            }
+        }
+        return builder.toString();
+    }
+
 }

@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  *
  */
 @Configuration
-@ConfigurationProperties(prefix = "rb.write.queue")
+@ConfigurationProperties(prefix = "rb.write.queue.db")
 public class WriteDbQuqueConfig {
     
     private int size;

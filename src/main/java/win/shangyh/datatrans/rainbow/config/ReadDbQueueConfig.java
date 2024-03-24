@@ -15,6 +15,9 @@
  */
 package win.shangyh.datatrans.rainbow.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
 /**
  *
  * TODO 说明
@@ -23,18 +26,22 @@ package win.shangyh.datatrans.rainbow.config;
  * @since 2024-03-19  18:15
  *
  */
+@Configuration
+@ConfigurationProperties(prefix = "rb.read.queue.db")
 public class ReadDbQueueConfig {
     
-    private int worder;
+    private int worker;
     
     private int bufferSize;
 
-    public int getWorder() {
-        return worder;
+    private int fetchSize;
+
+    public int getWorker() {
+        return worker;
     }
 
-    public void setWorder(int worder) {
-        this.worder = worder;
+    public void setWorker(int worker) {
+        this.worker = worker;
     }
 
     public int getBufferSize() {
@@ -43,6 +50,14 @@ public class ReadDbQueueConfig {
 
     public void setBufferSize(int bufferSize) {
         this.bufferSize = bufferSize;
+    }
+
+    public int getFetchSize() {
+        return fetchSize;
+    }
+
+    public void setFetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
     }
     
     
